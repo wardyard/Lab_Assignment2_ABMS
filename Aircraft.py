@@ -75,8 +75,8 @@ class Aircraft(object):
         """
         Moves an aircraft between from_node and to_node and checks if to_node or goal is reached.
         INPUT:
-            - dt = 
-            - t = 
+            - dt = time step delta
+            - t = current time
         """
 
         # Determine nodes between which the ac is moving

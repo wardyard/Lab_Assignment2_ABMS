@@ -150,6 +150,13 @@ aircraft_lst = []  # List which can contain aircraft agents
 if visualization:
     map_properties = map_initialization(nodes_dict, edges_dict)  # visualization properties
 
+# initialize lists for performance indicators
+travel_times = []
+travel_distances = []
+ratios = []
+throughput = dict()
+computing_times = []
+
 # =============================================================================
 # 1. While loop and visualization
 # =============================================================================
@@ -158,7 +165,7 @@ if visualization:
 running = True
 escape_pressed = False
 time_end = simulation_time
-dt = 0.1  # should be factor of 0.5 (0.5/dt should be integer)
+dt = 0.5  # should be factor of 0.5 (0.5/dt should be integer)
 t = 0
 
 print("Simulation Started")
@@ -198,7 +205,9 @@ while running:
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
-            run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
+            time_delta = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
+            # computing time performance indicator
+            computing_times.append(time_delta)
     elif planner == "Prioritized":
         run_prioritized_planner()
     elif planner == "CBS":
@@ -207,10 +216,19 @@ while running:
     else:
         raise Exception("Planner:", planner, "is not defined.")
 
+    # throughput performance indicator: A/C arrived at timestep t
+    ac_arrived_t = 0
+
     # Move the aircraft that are taxiing
     for ac in aircraft_lst:
         if ac.status == "taxiing":
             ac.move(dt, t)
+            # if AC has reached its goal, increment the throughput value by 1, else,
+            if ac.status == "arrived":
+                ac_arrived_t += 1
+
+    # add amount of arrived AC for this timestep in throughput dict
+    throughput[t] = ac_arrived_t
 
     t = t + dt
 
@@ -221,9 +239,6 @@ while running:
 
 # by now, all A/C have a planned path, path length, travel time and travel time/travel distance ratio
 # average these values over all aircraft and determine standard deviation
-travel_times = []
-travel_distances = []
-ratios = []
 
 for ac in aircraft_lst:
     travel_times.append(ac.travel_time)
@@ -234,6 +249,22 @@ for ac in aircraft_lst:
 avg_travel_time = np.mean(travel_times)
 avg_travel_distance = np.mean(travel_distances)
 avg_ratio = np.mean(ratios)
+avg_computing_time = np.mean(computing_times)
+throughputs = list(throughput.values())     # throughputs for every timestep t
+avg_throughput = np.mean(throughputs)
+# for throughput, the time scale can be chosen arbitrarily as well, e.g. AC arriving per 5 seconds
+# note: the interval should be a factor of the simulation time!
+interval = 5
+index = 0
+throughput_interval = []
+
+for i in range(simulation_time/interval):
+    values = throughputs[int(index):int(index+interval/dt)]
+    throughput_interval.append(sum(values))
+    index += interval/dt
+    print(values)
+
+avg_throughput_interval = np.mean(throughput_interval)
 
 # calculate standard deviations between AC
 std_travel_time = np.std(travel_times)
@@ -244,3 +275,6 @@ std_ratio = np.std(ratios)
 print("Average travel time: " + str(avg_travel_time) + ", standard deviation: " + str(std_travel_time))
 print("Average travel distance: " + str(avg_travel_distance) + ", standard deviation: " + str(std_travel_distance))
 print("Average time/distance ratio: " + str(avg_ratio) +", standard deviation: " + str(std_ratio))
+print("Average throughput: " + str(avg_throughput))
+print("Average throughput per " + str(interval) + " seconds: " + str(avg_throughput_interval))
+print("Average computing time: " + str(avg_computing_time))
