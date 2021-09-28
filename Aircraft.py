@@ -36,7 +36,9 @@ class Aircraft(object):
         self.position = (0, 0)  # xy position on map
 
         # performance indicators
-        self.travel_time = 0
+        self.travel_time = 0    # total travel time
+        self.path_length = 0    # total spatial distance of calculated path
+        self.time_length_ratio = 0  # ratio between travel time and path length. Indicates waiting time
 
     def get_heading(self, xy_start, xy_next):
         """
