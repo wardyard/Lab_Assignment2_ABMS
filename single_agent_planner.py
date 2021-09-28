@@ -57,12 +57,14 @@ def simple_single_agent_astar(nodes_dict, from_node, goal_node, heuristics, time
         - goal_node = [int] node_id of node to which planning is done
         - heuristics = [dict] dict with shortest path distance between nodes. Dictionary in a dictionary. Key of first dict is fromnode and key in second dict is tonode.
         - time_start = [float] planning start time. 
-        - Hint: do you need more inputs?
+        - Hint: do you need more inputs? -> yes, constraints
     RETURNS:
         - success = True/False. True if path is found and False is no path is found
         - path = list of tuples with (loc, timestep) pairs -> example [(37, 1), (101, 2)]. Empty list if success == False.
     """
-    
+    # expanded nodes performance indicator
+    expanded_nodes = 0
+
     from_node_id = from_node
     goal_node_id = goal_node
     time_start = time_start
@@ -76,8 +78,11 @@ def simple_single_agent_astar(nodes_dict, from_node, goal_node, heuristics, time
     closed_list[(root['loc'], root['timestep'])] = root
     while len(open_list) > 0:
         curr = pop_node(open_list)
+        # one extra expanded node
+        expanded_nodes += 1
+
         if curr['loc'] == goal_node_id and curr['timestep'] >= earliest_goal_timestep:
-            return True, get_path(curr)
+            return True, get_path(curr), expanded_nodes
         
         for neighbor in nodes_dict[curr['loc']]["neighbors"]:
             child = {'loc': neighbor,
@@ -94,7 +99,7 @@ def simple_single_agent_astar(nodes_dict, from_node, goal_node, heuristics, time
                 closed_list[(child['loc'], child['timestep'])] = child
                 push_node(open_list, child)
     print("No path found, "+str(len(closed_list))+" nodes visited")
-    return False, [] # Failed to find solutions
+    return False, [], expanded_nodes    # Failed to find solutions
 
 def push_node(open_list, node):
     heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node))

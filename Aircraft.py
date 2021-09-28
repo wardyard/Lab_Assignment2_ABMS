@@ -126,7 +126,7 @@ class Aircraft(object):
             start_node = self.start  # node from which planning should be done
             goal_node = self.goal  # node to which planning should be done
 
-            success, path = simple_single_agent_astar(nodes_dict, start_node, goal_node, heuristics, t)
+            success, path, exp_nodes = simple_single_agent_astar(nodes_dict, start_node, goal_node, heuristics, t)
             if success:
                 self.path_to_goal = path[1:]
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
@@ -144,6 +144,7 @@ class Aircraft(object):
             # Check the path
             if path[0][1] != t:
                 raise Exception("Something is wrong with the timing of the path planning")
+        return exp_nodes
 
     # TODO: add function plan_prioritized and plan_cbs
 

@@ -205,7 +205,7 @@ while running:
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
-            time_delta = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
+            time_delta, expanded_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
             # computing time performance indicator
             computing_times.append(time_delta)
     elif planner == "Prioritized":
@@ -278,3 +278,4 @@ print("Average time/distance ratio: " + str(avg_ratio) +", standard deviation: "
 print("Average throughput: " + str(avg_throughput))
 print("Average throughput per " + str(interval) + " seconds: " + str(avg_throughput_interval))
 print("Average computing time: " + str(avg_computing_time))
+print("Expanded nodes: " + str(expanded_nodes))
