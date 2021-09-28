@@ -36,8 +36,9 @@ class Aircraft(object):
         self.position = (0, 0)  # xy position on map
 
         # performance indicators
-        self.travel_time = 0    # total travel time
-        self.path_length = 0    # total spatial distance of calculated path
+        self.travel_time = len(self.path_to_goal)    # total travel time
+        self.visited_nodes = []     # different nodes visited by A/C. To determine path_length
+        self.path_length = len(self.visited_nodes)    # total spatial distance of calculated path
         self.time_length_ratio = 0  # ratio between travel time and path length. Indicates waiting time
 
     def get_heading(self, xy_start, xy_next):
@@ -131,9 +132,41 @@ class Aircraft(object):
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
                 print("Path AC", self.id, ":", path)
+                # determine length and time of travelled path + their ratio
+                self.compute_time_distance(path)
+                print("travel time AC", self.id, ":", self.travel_time)
+                print("travel distance AC", self.id, ":", self.path_length)
+                print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
+
             else:
                 raise Exception("No solution found for", self.id)
 
             # Check the path
             if path[0][1] != t:
                 raise Exception("Something is wrong with the timing of the path planning")
+
+    # TODO: add function plan_prioritized and plan_cbs
+
+    def compute_time_distance(self, path):
+        """
+        computes the performance indicators for travel time, travel distance and their ratio
+        This function is called when the A/C already has a planned path. It then updates instance
+        variables representing these performance indicators
+        """
+        # travel time performance indicator
+        start_time = path[0][1]
+        arrival_time = path[-1][1]
+        self.travel_time = float(arrival_time - start_time)
+
+        # travel distance performance indicator
+        # check whether the aircraft waits at a certain node. If not, add this node to the list of different
+        # visited nodes
+        for position in path:
+            node = position[0]
+            if not node in self.visited_nodes:
+                self.visited_nodes.append(node)
+        # calculate travelled distance
+        self.path_length = len(self.visited_nodes)
+
+        # travel time/travel distance performance indicator
+        self.time_length_ratio = round(self.travel_time / float(self.path_length), 5)

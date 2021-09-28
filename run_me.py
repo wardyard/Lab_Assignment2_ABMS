@@ -8,6 +8,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import time as timer
 import pygame as pg
+import numpy as np
 from single_agent_planner import calc_heuristics
 from visualization import map_initialization, map_running
 from Aircraft import Aircraft
@@ -217,3 +218,29 @@ while running:
 # 2. Implement analysis of output data here
 # =============================================================================
 # what data do you want to show?
+
+# by now, all A/C have a planned path, path length, travel time and travel time/travel distance ratio
+# average these values over all aircraft and determine standard deviation
+travel_times = []
+travel_distances = []
+ratios = []
+
+for ac in aircraft_lst:
+    travel_times.append(ac.travel_time)
+    travel_distances.append(ac.path_length)
+    ratios.append(ac.time_length_ratio)
+
+# average out results for this simulation
+avg_travel_time = np.mean(travel_times)
+avg_travel_distance = np.mean(travel_distances)
+avg_ratio = np.mean(ratios)
+
+# calculate standard deviations between AC
+std_travel_time = np.std(travel_times)
+std_travel_distance = np.std(travel_distances)
+std_ratio = np.std(ratios)
+
+# print results
+print("Average travel time: " + str(avg_travel_time) + ", standard deviation: " + str(std_travel_time))
+print("Average travel distance: " + str(avg_travel_distance) + ", standard deviation: " + str(std_travel_distance))
+print("Average time/distance ratio: " + str(avg_ratio) +", standard deviation: " + str(std_ratio))
