@@ -258,7 +258,7 @@ interval = 5
 index = 0
 throughput_interval = []
 
-for i in range(simulation_time/interval):
+for i in range(int(simulation_time/interval)):
     values = throughputs[int(index):int(index+interval/dt)]
     throughput_interval.append(sum(values))
     index += interval/dt
@@ -282,13 +282,17 @@ print("Expanded nodes: " + str(expanded_nodes))
 
 # heat map experiments
 heatmap = np.zeros(len(nodes_dict))
+# for every aircraft, add +1 in heatmap for every node that it has visited
+# TODO: nodes where the A/C is waiting aren't added twice, should this bes changed to see wiaint bottlenecks?
 for ac in aircraft_lst:
     for node in ac.visited_nodes:
         heatmap[int(node)-1] += 1
 max_heat = max(heatmap)
-# now normalize heatmap with repect to 1 (RGB). The max_heat value will correspond to 1
+# now normalize heatmap with repect to 1. The max_heat value will correspond to 1
+# the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual
+# RGB values up until 255
 heatmap = [(1,1-a/float(max_heat),0) for a in heatmap]
-
+# plot the graph (heatmap)
 plt.figure()
 node_locations = nx.get_node_attributes(graph, 'xy_pos')
 nx.draw(graph, node_locations, with_labels=True, node_size=100, font_size=10, node_color=heatmap)
