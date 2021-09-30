@@ -1,4 +1,4 @@
-from single_agent_planner import simple_single_agent_astar
+from single_agent_planner import simple_single_agent_astar, astar
 import math
 
 
@@ -138,6 +138,7 @@ class Aircraft(object):
                 print("travel distance AC", self.id, ":", self.path_length)
                 print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
 
+
             else:
                 raise Exception("No solution found for", self.id)
 
@@ -147,6 +148,59 @@ class Aircraft(object):
         return exp_nodes
 
     # TODO: add function plan_prioritized and plan_cbs
+
+    def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, t):
+        """
+        Plans path for taiing aircraft where constrainets are constructed on the go in terms of priority
+        Args:
+            nodes_dict:
+            edges_dict:
+            heuristics:
+            t:
+
+        Returns:
+            expanded nodes
+            updated constraints
+        """
+        constr = constraints.copy()
+
+        if self.status == "taxiing":
+            start_node = self.start  # node from which planning should be done
+            goal_node = self.goal  # node to which planning should be done
+
+            success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t)
+
+            if success:
+                self.path_to_goal = path[1:]
+                next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
+                self.from_to = [path[0][0], next_node_id]
+                print("Path AC", self.id, ":", path)
+                # determine length and time of travelled path + their ratio
+                self.compute_time_distance(path)
+                print("travel time AC", self.id, ":", self.travel_time)
+                print("travel distance AC", self.id, ":", self.path_length)
+                print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
+
+                # now add constraints to other agents
+                # constraints are not agent-specific, bu spawn time specific
+                # every agent that spawns after or at the time specified in the constraint, will have
+                # to obey to this constraint
+                timestep = self.spawntime
+                for node_time_pair in path: # path is list of (node_id, timestep) tuples
+                    node = node_time_pair[0]    # find node_id
+                    # vertex constraint
+                    constr.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep})
+                    # edge constraint:
+                    # find previous node in AC path
+                    previous_node = path[timestep-1][0] if timestep > self.spawntime else self.start
+                    constr.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
+
+                    timestep += 1
+                
+
+            else:
+                raise Exception("No solution found for", self.id)
+
 
     def compute_time_distance(self, path):
         """
