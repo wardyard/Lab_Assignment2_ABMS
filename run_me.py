@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import time as timer
 import pygame as pg
 import numpy as np
+import random
 from single_agent_planner import calc_heuristics
 from visualization import map_initialization, map_running
 from Aircraft import Aircraft
@@ -23,12 +24,12 @@ edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (nod
 
 # Parameters that can be changed:
 simulation_time = 20
-planner = "Independent"  # choose which planner to use (currently only Independent is implemented)
+planner = "Prioritized"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.1  # set at 0.1 as default
+visualization_speed = 0.5  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -167,6 +168,9 @@ escape_pressed = False
 time_end = simulation_time
 dt = 0.5  # should be factor of 0.5 (0.5/dt should be integer)
 t = 0
+spawned_ac = 0
+# we start with an empty constraints list for the first spawned AC
+constraints = []
 
 print("Simulation Started")
 while running:
@@ -209,7 +213,9 @@ while running:
             # computing time performance indicator
             computing_times.append(time_delta)
     elif planner == "Prioritized":
-        run_prioritized_planner()
+        time_delta, expanded_nodes = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, constraints,t)
+        # computing time performance indicator
+        computing_times.append(time_delta)
     elif planner == "CBS":
         run_CBS()
     # elif planner == -> you may introduce other planners here
@@ -276,7 +282,7 @@ print("Average travel distance: " + str(avg_travel_distance) + ", standard devia
 print("Average time/distance ratio: " + str(avg_ratio) +", standard deviation: " + str(std_ratio))
 print("Average throughput: " + str(avg_throughput))
 print("Average throughput per " + str(interval) + " seconds: " + str(avg_throughput_interval))
-print("Average computing time: " + str(avg_computing_time))
+print("Average computing time: " + str(avg_computing_time) + ' nanoseconds')
 print("Expanded nodes: " + str(expanded_nodes))
 
 

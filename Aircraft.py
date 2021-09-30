@@ -153,6 +153,7 @@ class Aircraft(object):
         """
         Plans path for taxiing aircraft where constraints are constructed on the go in terms of priority
         Args:
+            constraints:
             nodes_dict:
             edges_dict:
             heuristics:
@@ -193,11 +194,12 @@ class Aircraft(object):
                     # vertex constraint
                     constr.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep})
                     # edge constraint:
-                    # find previous node in AC path
-                    previous_node = path[timestep-1][0] if timestep > self.spawntime else self.start
+                    # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
+                    previous_node = self.start if timestep <= self.spawntime else path[int(2*timestep-2*self.spawntime -1)][0]
                     constr.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
 
-                    timestep += 1
+                    # TODO: +0.5 (aka dt) is hard coded here, fix this
+                    timestep += 0.5
                 return expanded_nodes, constr
 
             else:

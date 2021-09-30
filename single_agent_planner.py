@@ -126,7 +126,7 @@ def build_constraint_table(constraints, spawntime):
                 constraint_table[constraint['timestep']].append(constraint)
             else:
                 constraint_table[constraint['timestep']].append(constraint)
-    print('constraint tabel for spawntime ' + str(spawntime) +': ' + str(constraint_table))
+    print('constraint table for spawntime ' + str(spawntime) +': ' + str(constraint_table))
     return constraint_table
 
 
@@ -215,7 +215,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime):
                 else:
                     closed_list[(child['loc'], child['timestep'])] = child
                     push_node(open_list, child)
-                    
+
         # add child node which stays at same position for 1 timestep
         constrained = is_constrained(curr['loc'], curr['loc'], curr['timestep'] + 1, constraint_table)
         if not constrained:
