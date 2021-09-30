@@ -153,7 +153,6 @@ class Aircraft(object):
                 raise Exception("Something is wrong with the timing of the path planning")
         return exp_nodes
 
-    # TODO: add function plan_prioritized and plan_cbs
 
     def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, t):
         """
@@ -201,7 +200,7 @@ class Aircraft(object):
                     # edge constraint: only if aircraft has moved already
                     if not timestep <= self.spawntime + 0.5:   # TODO: 0.5 (aka dt) is hard coded, make this dt
                         # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
-                        print('timestep: ' + str(timestep))
+                        # print('timestep: ' + str(timestep))
                         previous_node = path[int(2 * timestep - 2 * self.spawntime - 1)][0]     # TODO: double check this, gave errors
                         constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
 

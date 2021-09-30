@@ -212,9 +212,8 @@ while running:
         escape_pressed = map_running(map_properties, current_states, t)
         timer.sleep(visualization_speed)
 
-    # Spawn aircraft for this timestep at random
+    # Spawn aircraft for this timestep at random but make sure to not spawn them on another aircraft
     if random.random() < 0.2:
-        print('Aircraft spawned at ' + str(t))
         if random.random() < 0.5:   # departing AC
             # determine at which gate the AC starts
             start_node_index = random.randint(0, len(gates_ids) - 1)
@@ -222,10 +221,8 @@ while running:
             # determine at which rwy_d node the AC will take off
             goal_node_index = random.randint(0, len(rwy_d_ids) - 1)
             goal_node = rwy_d_ids[goal_node_index]
-            # construct AC
-            ac = Aircraft(spawned_ac + 1, 'D', start_node, goal_node, t, nodes_dict)
-            aircraft_lst.append(ac)
-            spawned_ac += 1
+            arr_dep = 'D'
+
         else:                       # arriving AC
             # determine at which rwy_a node the AC arrives
             start_node_index = random.randint(0, len(rwy_a_ids) - 1)
@@ -233,10 +230,19 @@ while running:
             # determine at which gate the AC has to end
             goal_node_index = random.randint(0, len(gates_ids) - 1)
             goal_node = gates_ids[goal_node_index]
-            # construct AC
-            ac = Aircraft(spawned_ac + 1, 'A', start_node, goal_node, t, nodes_dict)
+            arr_dep = 'A'
+
+        spawn_on_other_ac = False
+        for aircr in aircraft_lst:
+            # check if there's currently an aircraft at the spawning position
+            if aircr.position == nodes_dict[start_node]["xy_pos"]:
+                spawn_on_other_ac = True
+        # only if it's safe to spawn, add the ac to the list
+        if not spawn_on_other_ac:
+            ac = Aircraft(spawned_ac + 1, arr_dep, start_node, goal_node, t, nodes_dict)
             aircraft_lst.append(ac)
             spawned_ac += 1
+        print('Aircraft spawned at ' + str(t) +', position: ' + str(start_node))
     '''
     if t == 1:
         ac = Aircraft(1, 'A', 37, 36, t,
