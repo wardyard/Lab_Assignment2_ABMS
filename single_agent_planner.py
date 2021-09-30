@@ -102,6 +102,61 @@ def simple_single_agent_astar(nodes_dict, from_node, goal_node, heuristics, time
     print("No path found, "+str(len(closed_list))+" nodes visited")
     return False, [], expanded_nodes    # Failed to find solutions
 
+
+def build_constraint_table(constraints, spawntime):
+    """
+    builds a dictionary where the keys are timesteps. For these keys, a list of constraints corresponding to
+    this timestep is constructed. Whether or not a constraint is applicable for a certain aircraft is decided
+    based on the spawning time of the aircraft: if the constraint was constructed before or at this time, it applies
+    to the aircraft
+    Args:
+        constraints:
+        spawntime of the aircraft
+
+    Returns:
+        constraint_table
+    """
+    # constraints will be indexed by time step:
+    constraint_table = dict()
+    for constraint in constraints:
+        if constraint['spawntime'] <= spawntime:
+            # check if key if timestep already has constraints
+            if constraint['timestep'] not in constraint_table:
+                constraint_table[constraint['timestep']] = []
+                constraint_table[constraint['timestep']].append(constraint)
+            else:
+                constraint_table[constraint['timestep']].append(constraint)
+    print('constraint tabel for spawntime ' + str(spawntime) +': ' + str(constraint_table))
+    return constraint_table
+
+
+def is_constrained(curr_node, next_node, next_time, constraint_table):
+    """
+    checks whether the current move is constrained or not for this aircraft.
+    Args:
+        curr_node: node at which AC is currently
+        next_node: node to which AC wants to move
+        next_time: newt timestep
+        constraint_table: constraint table for this AC
+
+    Returns:
+        true if AC can't make this move, false elsewhere
+    """
+    if constraint_table.get(next_time) is not None:
+        constraints = constraint_table.get(next_time)
+        for constraint in constraints:
+            constr_loc = constraint['loc']
+
+            # for edge constraints
+            if len(constr_loc) > 1 and constr_loc[0] == curr_node and constr_loc[1] == next_node:
+                return True
+
+            # for vertex constraint
+            elif len(constr_loc) == 1 and constr_loc[0] == next_node:
+                return True
+
+    return False
+
 # added to keep the simple agent astar working until we finish this legit one
 def astar(nodes_dict, from_node, goal_node, heuristics, constraints, time_start):
     """

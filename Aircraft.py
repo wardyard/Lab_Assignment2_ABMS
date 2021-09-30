@@ -151,7 +151,7 @@ class Aircraft(object):
 
     def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, t):
         """
-        Plans path for taiing aircraft where constrainets are constructed on the go in terms of priority
+        Plans path for taxiing aircraft where constraints are constructed on the go in terms of priority
         Args:
             nodes_dict:
             edges_dict:
@@ -171,6 +171,8 @@ class Aircraft(object):
             success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t)
 
             if success:
+                if path[0][1] != t:
+                    raise Exception("Something is wrong with the timing of the path planning")
                 self.path_to_goal = path[1:]
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
@@ -196,7 +198,7 @@ class Aircraft(object):
                     constr.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
 
                     timestep += 1
-                
+                return expanded_nodes, constr
 
             else:
                 raise Exception("No solution found for", self.id)
