@@ -110,12 +110,14 @@ def build_constraint_table(constraints, spawntime):
     based on the spawning time of the aircraft: if the constraint was constructed before or at this time, it applies
     to the aircraft
     Args:
-        constraints:
-        spawntime of the aircraft
+        spawntime: spawntime of the aircraft
+        constraints: list of all constraints
 
     Returns:
         constraint_table
     """
+    if len(constraints) == 0:
+        print('no constraints for timestep ' + str(spawntime) )
     # constraints will be indexed by time step:
     constraint_table = dict()
     for constraint in constraints:

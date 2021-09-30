@@ -23,13 +23,13 @@ nodes_file = "nodes.xlsx"  # xlsx file with for each node: id, x_pos, y_pos, typ
 edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (node), length
 
 # Parameters that can be changed:
-simulation_time = 20
+simulation_time = 40
 planner = "Prioritized"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.5  # set at 0.1 as default
+visualization_speed = 0.1  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -158,6 +158,26 @@ ratios = []
 throughput = dict()
 computing_times = []
 
+# will be used as ID for spawning aircraft
+spawned_ac = 0
+
+# we start with an empty constraints list for the first spawned AC
+constraints = []
+
+# gate, departing rwy and arriving rwy node IDs, used for random AC spawning
+gates_ids = []  # will contain IDs of gate nodes
+rwy_a_ids = []  # will contain IDs of arrival runway nodes
+rwy_d_ids = []  # will contain IDs of departure runway nodes
+for node in nodes_dict:
+    node_id = nodes_dict[node]["id"]
+    node_type = nodes_dict[node]["type"]
+    if node_type == "gate":
+        gates_ids.append(node_id)
+    elif node_type == "rwy_a":
+        rwy_a_ids.append(node_id)
+    elif node_type == "rwy_d":
+        rwy_d_ids.append(node_id)
+
 # =============================================================================
 # 1. While loop and visualization
 # =============================================================================
@@ -168,9 +188,7 @@ escape_pressed = False
 time_end = simulation_time
 dt = 0.5  # should be factor of 0.5 (0.5/dt should be integer)
 t = 0
-spawned_ac = 0
-# we start with an empty constraints list for the first spawned AC
-constraints = []
+
 
 print("Simulation Started")
 while running:
@@ -194,7 +212,32 @@ while running:
         escape_pressed = map_running(map_properties, current_states, t)
         timer.sleep(visualization_speed)
 
-        # TODO: Spawn aircraft for this timestep (use for example a random process)
+    # Spawn aircraft for this timestep at random
+    if random.random() < 0.2:
+        print('Aircraft spawned at ' + str(t))
+        if random.random() < 0.5:   # departing AC
+            # determine at which gate the AC starts
+            start_node_index = random.randint(0, len(gates_ids) - 1)
+            start_node = gates_ids[start_node_index]
+            # determine at which rwy_d node the AC will take off
+            goal_node_index = random.randint(0, len(rwy_d_ids) - 1)
+            goal_node = rwy_d_ids[goal_node_index]
+            # construct AC
+            ac = Aircraft(spawned_ac + 1, 'D', start_node, goal_node, t, nodes_dict)
+            aircraft_lst.append(ac)
+            spawned_ac += 1
+        else:                       # arriving AC
+            # determine at which rwy_a node the AC arrives
+            start_node_index = random.randint(0, len(rwy_a_ids) - 1)
+            start_node = rwy_a_ids[start_node_index]
+            # determine at which gate the AC has to end
+            goal_node_index = random.randint(0, len(gates_ids) - 1)
+            goal_node = gates_ids[goal_node_index]
+            # construct AC
+            ac = Aircraft(spawned_ac + 1, 'A', start_node, goal_node, t, nodes_dict)
+            aircraft_lst.append(ac)
+            spawned_ac += 1
+    '''
     if t == 1:
         ac = Aircraft(1, 'A', 37, 36, t,
                       nodes_dict)  # As an example we will create one aicraft arriving at node 37 with the goal of reaching node 36
@@ -205,7 +248,7 @@ while running:
         aircraft_lst.append(ac)
         aircraft_lst.append(ac1)
         aircraft_lst.append(ac2)
-
+    '''
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
@@ -283,13 +326,13 @@ print("Average time/distance ratio: " + str(avg_ratio) +", standard deviation: "
 print("Average throughput: " + str(avg_throughput))
 print("Average throughput per " + str(interval) + " seconds: " + str(avg_throughput_interval))
 print("Average computing time: " + str(avg_computing_time) + ' nanoseconds')
-print("Expanded nodes: " + str(expanded_nodes))
+print("Expanded nodes: " + str(expanded_nodes))     # TODO: this gives 0
 
 
 # heat map experiments
 heatmap = np.zeros(len(nodes_dict))
 # for every aircraft, add +1 in heatmap for every node that it has visited
-# TODO: nodes where the A/C is waiting aren't added twice, should this bes changed to see wiaint bottlenecks?
+# TODO: nodes where the A/C is waiting aren't added twice, should this be changed to see bottlenecks?
 for ac in aircraft_lst:
     for node in ac.visited_nodes:
         heatmap[int(node)-1] += 1

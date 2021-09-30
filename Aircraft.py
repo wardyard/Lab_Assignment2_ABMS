@@ -81,7 +81,11 @@ class Aircraft(object):
 
         # Determine nodes between which the ac is moving
         from_node = self.from_to[0]
+        # division by 0 debugging
+        #print('from_node: ' + str(from_node))
         to_node = self.from_to[1]
+        # division by 0 debugging
+        #print('to_node: ' + str(to_node))
         xy_from = self.nodes_dict[from_node]["xy_pos"]  # xy position of from node
         xy_to = self.nodes_dict[to_node]["xy_pos"]  # xy position of to node
         distance_to_move = self.speed * dt  # distance to move in this timestep
@@ -89,8 +93,10 @@ class Aircraft(object):
         # Update position with rounded values
         x = xy_to[0] - xy_from[0]
         y = xy_to[1] - xy_from[1]
-        x_normalized = x / math.sqrt(x ** 2 + y ** 2)
-        y_normalized = y / math.sqrt(x ** 2 + y ** 2)
+        # division by 0 debugging
+        #print('x: ' + str(x) + ', y: ' + str(y))
+        x_normalized = 0 if (x == 0 and y == 0) else x / math.sqrt(x ** 2 + y ** 2)
+        y_normalized = 0 if (x == 0 and y == 0) else y / math.sqrt(x ** 2 + y ** 2)
         posx = round(self.position[0] + x_normalized * distance_to_move, 2)  # round to prevent errors
         posy = round(self.position[1] + y_normalized * distance_to_move, 2)  # round to prevent errors
         self.position = (posx, posy)
@@ -163,7 +169,6 @@ class Aircraft(object):
             expanded nodes
             updated constraints
         """
-        constr = constraints.copy()
 
         if self.status == "taxiing":
             start_node = self.start  # node from which planning should be done
@@ -180,27 +185,28 @@ class Aircraft(object):
                 print("Path AC", self.id, ":", path)
                 # determine length and time of travelled path + their ratio
                 self.compute_time_distance(path)
-                print("travel time AC", self.id, ":", self.travel_time)
-                print("travel distance AC", self.id, ":", self.path_length)
-                print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
+                # print("travel time AC", self.id, ":", self.travel_time)
+                # print("travel distance AC", self.id, ":", self.path_length)
+                # print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
 
                 # now add constraints to other agents
-                # constraints are not agent-specific, bu spawn time specific
+                # constraints are not agent-specific, but spawn time specific
                 # every agent that spawns after or at the time specified in the constraint, will have
                 # to obey to this constraint
-                timestep = self.spawntime
                 for node_time_pair in path: # path is list of (node_id, timestep) tuples
                     node = node_time_pair[0]    # find node_id
+                    timestep = node_time_pair[1]
                     # vertex constraint
-                    constr.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep})
-                    # edge constraint:
-                    # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
-                    previous_node = self.start if timestep <= self.spawntime else path[int(2*timestep-2*self.spawntime -1)][0]
-                    constr.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
+                    constraints.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep})
+                    # edge constraint: only if aircraft has moved already
+                    if not timestep <= self.spawntime + 0.5:   # TODO: 0.5 (aka dt) is hard coded, make this dt
+                        # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
+                        print('timestep: ' + str(timestep))
+                        previous_node = path[int(2 * timestep - 2 * self.spawntime - 1)][0]     # TODO: double check this, gave errors
+                        constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
 
-                    # TODO: +0.5 (aka dt) is hard coded here, fix this
-                    timestep += 0.5
-                return expanded_nodes, constr
+                print('constraints after plan_prioritized: ' + str(constraints))
+                return expanded_nodes, constraints
 
             else:
                 raise Exception("No solution found for", self.id)
