@@ -157,8 +157,9 @@ def is_constrained(curr_node, next_node, next_time, constraint_table):
 
     return False
 
+
 # added to keep the simple agent astar working until we finish this legit one
-def astar(nodes_dict, from_node, goal_node, heuristics, constraints, time_start):
+def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime):
     """
     Single agent A* search. Time start can only be the time that an agent is at a node.
     INPUT:
@@ -178,12 +179,14 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, time_start)
 
     from_node_id = from_node
     goal_node_id = goal_node
-    time_start = time_start
+    time_start = spawntime
 
     open_list = []
     closed_list = dict()
     earliest_goal_timestep = time_start
     h_value = heuristics[from_node_id][goal_node_id]
+    # construct constraint table for this AC
+    constraint_table = build_constraint_table(constraints, time_start)
     root = {'loc': from_node_id, 'g_val': 0, 'h_val': h_value, 'parent': None, 'timestep': time_start}
     push_node(open_list, root)
     closed_list[(root['loc'], root['timestep'])] = root
@@ -196,11 +199,33 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, time_start)
             return True, get_path(curr), expanded_nodes
 
         for neighbor in nodes_dict[curr['loc']]["neighbors"]:
-            child = {'loc': neighbor,
-                     'g_val': curr['g_val'] + 0.5,
-                     'h_val': heuristics[neighbor][goal_node_id],
+            # check if moving to this neighbor is constrained, if not, a new child node may be constructed
+            constrained = is_constrained(curr['loc'], neighbor, curr['timestep'] + 0.5, constraint_table)
+            if not constrained:
+                child = {'loc': neighbor,
+                         'g_val': curr['g_val'] + 0.5,
+                         'h_val': heuristics[neighbor][goal_node_id],
+                         'parent': curr,
+                         'timestep': curr['timestep'] + 0.5}
+                if (child['loc'], child['timestep']) in closed_list:
+                    existing_node = closed_list[(child['loc'], child['timestep'])]
+                    if compare_nodes(child, existing_node):
+                        closed_list[(child['loc'], child['timestep'])] = child
+                        push_node(open_list, child)
+                else:
+                    closed_list[(child['loc'], child['timestep'])] = child
+                    push_node(open_list, child)
+                    
+        # add child node which stays at same position for 1 timestep
+        constrained = is_constrained(curr['loc'], curr['loc'], curr['timestep'] + 1, constraint_table)
+        if not constrained:
+            child_loc = curr['loc']
+            child = {'loc': child_loc,
+                     'g_val': curr['g_val'] + 1,  # was curr['g_val'] + 1
+                     'h_val': heuristics[child_loc][goal_node_id],
                      'parent': curr,
-                     'timestep': curr['timestep'] + 0.5}
+                     'timestep': curr['timestep'] + 1}
+
             if (child['loc'], child['timestep']) in closed_list:
                 existing_node = closed_list[(child['loc'], child['timestep'])]
                 if compare_nodes(child, existing_node):
