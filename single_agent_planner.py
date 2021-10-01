@@ -202,12 +202,12 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime):
             return True, path, expanded_nodes
         # no 180 turns are allowed
         for neighbor in nodes_dict[curr['loc']]["neighbors"]:
-            # if the selected neighbour is the previous node, forbid the move
-            # this indicates a 180° turn
-            if neighbor == path[-1][0]:
-                break
             # check if moving to this neighbor is constrained, if not, a new child node may be constructed
             constrained = is_constrained(curr['loc'], neighbor, curr['timestep'] + 0.5, constraint_table)
+            # if the selected neighbour is the previous node, forbid the move
+            # this indicates a 180° turn
+            if len(path) > 1 and neighbor == path[-2][0]:
+                constrained = True
             if not constrained:
                 child = {'loc': neighbor,
                          'g_val': curr['g_val'] + 0.5,

@@ -187,7 +187,6 @@ deadlock_nodes_rwya = {37: [37, 101], 38: [38, 102]}
 # for the departure runway, list the nodes that automatically result in deadlock
 deadlock_nodes_rwyd = {1: [1, 95], 2: [2, 96]}
 
-
 # =============================================================================
 # 1. While loop and visualization
 # =============================================================================
@@ -198,7 +197,6 @@ escape_pressed = False
 time_end = simulation_time
 dt = 0.5  # should be factor of 0.5 (0.5/dt should be integer)
 t = 0
-
 
 print("Simulation Started")
 while running:
@@ -227,7 +225,7 @@ while running:
     # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
     # are located at one of these positions
     if random.random() < 0.2:
-        if random.random() < 0.5:   # departing AC
+        if random.random() < 0.5:  # departing AC
             # determine at which gate the AC starts
             start_node_index = random.randint(0, len(gates_ids) - 1)
             start_node = gates_ids[start_node_index]
@@ -236,7 +234,7 @@ while running:
             goal_node = rwy_d_ids[goal_node_index]
             arr_dep = 'D'
 
-        else:                       # arriving AC
+        else:  # arriving AC
             # determine at which rwy_a node the AC arrives
             start_node_index = random.randint(0, len(rwy_a_ids) - 1)
             start_node = rwy_a_ids[start_node_index]
@@ -268,7 +266,7 @@ while running:
             ac = Aircraft(spawned_ac + 1, arr_dep, start_node, goal_node, t, nodes_dict)
             aircraft_lst.append(ac)
             spawned_ac += 1
-        print('Aircraft spawned at ' + str(t) +', position: ' + str(start_node))
+        print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
     '''
     if t == 1:
         ac = Aircraft(1, 'A', 37, 36, t,
@@ -289,7 +287,7 @@ while running:
             computing_times.append(time_delta)
     elif planner == "Prioritized":
         time_delta, expanded_nodes, deadlcks = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics,
-                                                             constraints, dt, t)
+                                                                       constraints, dt, t)
         if deadlcks > 0:
             aircraft_lst.pop()
             # deadlocks performance indicator
@@ -336,7 +334,7 @@ avg_travel_time = np.mean(travel_times)
 avg_travel_distance = np.mean(travel_distances)
 avg_ratio = np.mean(ratios)
 avg_computing_time = np.mean(computing_times)
-throughputs = list(throughput.values())     # throughputs for every timestep t
+throughputs = list(throughput.values())  # throughputs for every timestep t
 avg_throughput = np.mean(throughputs)
 # for throughput, the time scale can be chosen arbitrarily as well, e.g. AC arriving per 5 seconds
 # note: the interval should be a factor of the simulation time!
@@ -344,10 +342,10 @@ interval = 5
 index = 0
 throughput_interval = []
 
-for i in range(int(simulation_time/interval)):
-    values = throughputs[int(index):int(index+interval/dt)]
+for i in range(int(simulation_time / interval)):
+    values = throughputs[int(index):int(index + interval / dt)]
     throughput_interval.append(sum(values))
-    index += interval/dt
+    index += interval / dt
 
 avg_throughput_interval = np.mean(throughput_interval)
 
@@ -359,13 +357,12 @@ std_ratio = np.std(ratios)
 # print results
 print("Average travel time: " + str(avg_travel_time) + ", standard deviation: " + str(std_travel_time))
 print("Average travel distance: " + str(avg_travel_distance) + ", standard deviation: " + str(std_travel_distance))
-print("Average time/distance ratio: " + str(avg_ratio) +", standard deviation: " + str(std_ratio))
+print("Average time/distance ratio: " + str(avg_ratio) + ", standard deviation: " + str(std_ratio))
 print("Average throughput: " + str(avg_throughput))
 print("Average throughput per " + str(interval) + " seconds: " + str(avg_throughput_interval))
 print("Average computing time: " + str(avg_computing_time) + ' nanoseconds')
-print("Expanded nodes: " + str(expanded_nodes))     # TODO: this gives 0
+print("Expanded nodes: " + str(expanded_nodes))  # TODO: this gives 0
 print("Deadlocks: " + str(deadlocks))
-
 
 # heat map experiments
 heatmap = np.zeros(len(nodes_dict))
@@ -373,12 +370,12 @@ heatmap = np.zeros(len(nodes_dict))
 # TODO: nodes where the A/C is waiting aren't added twice, should this be changed to see bottlenecks?
 for ac in aircraft_lst:
     for node in ac.visited_nodes:
-        heatmap[int(node)-1] += 1
+        heatmap[int(node) - 1] += 1
 max_heat = max(heatmap)
 # now normalize heatmap with repect to 1. The max_heat value will correspond to 1
 # the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual
 # RGB values up until 255
-heatmap = [(1,1-a/float(max_heat),0) for a in heatmap]
+heatmap = [(1, 1 - a / float(max_heat), 0) for a in heatmap]
 # plot the graph (heatmap)
 plt.figure()
 node_locations = nx.get_node_attributes(graph, 'xy_pos')
