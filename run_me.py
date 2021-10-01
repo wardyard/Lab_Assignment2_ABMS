@@ -29,7 +29,7 @@ planner = "Prioritized"  # choose which planner to use (currently only Independe
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.1  # set at 0.1 as default
+visualization_speed = 0.5  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -157,6 +157,7 @@ travel_distances = []
 ratios = []
 throughput = dict()
 computing_times = []
+deadlocks = 0
 
 # will be used as ID for spawning aircraft
 spawned_ac = 0
@@ -287,8 +288,12 @@ while running:
             # computing time performance indicator
             computing_times.append(time_delta)
     elif planner == "Prioritized":
-        time_delta, expanded_nodes = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics,
+        time_delta, expanded_nodes, deadlcks = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics,
                                                              constraints, dt, t)
+        if deadlcks > 0:
+            aircraft_lst.pop()
+            # deadlocks performance indicator
+            deadlocks += deadlcks
         # computing time performance indicator
         computing_times.append(time_delta)
     elif planner == "CBS":
@@ -359,6 +364,7 @@ print("Average throughput: " + str(avg_throughput))
 print("Average throughput per " + str(interval) + " seconds: " + str(avg_throughput_interval))
 print("Average computing time: " + str(avg_computing_time) + ' nanoseconds')
 print("Expanded nodes: " + str(expanded_nodes))     # TODO: this gives 0
+print("Deadlocks: " + str(deadlocks))
 
 
 # heat map experiments

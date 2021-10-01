@@ -205,10 +205,12 @@ class Aircraft(object):
                         constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
 
                 print('constraints after plan_prioritized: ' + str(constraints))
-                return expanded_nodes, constraints
+                return expanded_nodes, constraints, 0
 
             else:
-                raise Exception("No solution found for", self.id)
+                print('No solution found for ' + str(self.id))
+                return expanded_nodes, constraints, 1
+
 
 
     def compute_time_distance(self, path):
