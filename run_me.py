@@ -178,6 +178,15 @@ for node in nodes_dict:
     elif node_type == "rwy_d":
         rwy_d_ids.append(node_id)
 
+# define the nodes which will automatically result in deadlock when an AC is spawned, these are hard-coded
+# for each gate, list the nodes that automatically result in deadlock
+deadlock_nodes_gate = {97: [97, 99], 34: [34, 92], 35: [35, 93], 36: [36, 94], 98: [98, 100]}
+# for the arrival runway, list the nodes that automatically result in deadlock
+deadlock_nodes_rwya = {37: [37, 101], 38: [38, 102]}
+# for the departure runway, list the nodes that automatically result in deadlock
+deadlock_nodes_rwyd = {1: [1, 95], 2: [2, 96]}
+
+
 # =============================================================================
 # 1. While loop and visualization
 # =============================================================================
@@ -213,6 +222,9 @@ while running:
         timer.sleep(visualization_speed)
 
     # Spawn aircraft for this timestep at random but make sure to not spawn them on another aircraft
+    # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
+    # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
+    # are located at one of these positions
     if random.random() < 0.2:
         if random.random() < 0.5:   # departing AC
             # determine at which gate the AC starts
@@ -232,11 +244,24 @@ while running:
             goal_node = gates_ids[goal_node_index]
             arr_dep = 'A'
 
+        # boolean to indicate whether the AC will spawn in a nasty situation
         spawn_on_other_ac = False
         for aircr in aircraft_lst:
-            # check if there's currently an aircraft at the spawning position
-            if aircr.position == nodes_dict[start_node]["xy_pos"]:
+            # check if there's currently an AC at the spawn position
+            path = ac.path_to_goal
+            if path[0][0] == start_node:
                 spawn_on_other_ac = True
+                break
+
+            # if not, check if the AC will head straight into the spawned aircraft
+            # aka check if it will be located at the preceding node of the spawning node
+            # nodes_dict[start_node]["neighbors"] gives node IDs of neighbouring nodes
+            for node_time_pair in path:
+                # if at the current time, the AC is at one of the neighboring nodes of the start node
+                if node_time_pair[1] == t and (node_time_pair[0] in nodes_dict[start_node]["neighbors"]):
+                    spawn_on_other_ac = True
+                    break
+
         # only if it's safe to spawn, add the ac to the list
         if not spawn_on_other_ac:
             ac = Aircraft(spawned_ac + 1, arr_dep, start_node, goal_node, t, nodes_dict)
@@ -262,7 +287,8 @@ while running:
             # computing time performance indicator
             computing_times.append(time_delta)
     elif planner == "Prioritized":
-        time_delta, expanded_nodes = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, constraints,t)
+        time_delta, expanded_nodes = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics,
+                                                             constraints, dt, t)
         # computing time performance indicator
         computing_times.append(time_delta)
     elif planner == "CBS":

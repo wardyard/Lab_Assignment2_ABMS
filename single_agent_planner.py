@@ -199,7 +199,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime):
 
         if curr['loc'] == goal_node_id and curr['timestep'] >= earliest_goal_timestep:
             return True, get_path(curr), expanded_nodes
-
+        # TODO: no 180 turns are allowed
         for neighbor in nodes_dict[curr['loc']]["neighbors"]:
             # check if moving to this neighbor is constrained, if not, a new child node may be constructed
             constrained = is_constrained(curr['loc'], neighbor, curr['timestep'] + 0.5, constraint_table)

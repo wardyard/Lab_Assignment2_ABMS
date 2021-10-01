@@ -154,7 +154,7 @@ class Aircraft(object):
         return exp_nodes
 
 
-    def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, t):
+    def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints,dt, t):
         """
         Plans path for taxiing aircraft where constraints are constructed on the go in terms of priority
         Args:
@@ -198,10 +198,10 @@ class Aircraft(object):
                     # vertex constraint
                     constraints.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep})
                     # edge constraint: only if aircraft has moved already
-                    if not timestep <= self.spawntime + 0.5:   # TODO: 0.5 (aka dt) is hard coded, make this dt
+                    if not timestep <= self.spawntime + dt:
                         # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
                         # print('timestep: ' + str(timestep))
-                        previous_node = path[int(2 * timestep - 2 * self.spawntime - 1)][0]     # TODO: double check this, gave errors
+                        previous_node = path[int((1/dt) * timestep - (1/dt) * self.spawntime - 1)][0]     # TODO: double check this, gave errors
                         constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
 
                 print('constraints after plan_prioritized: ' + str(constraints))
