@@ -71,7 +71,7 @@ class Aircraft(object):
 
         self.heading = heading
 
-    def move(self, dt, t):
+    def move(self, dt, t, constraints):
         """
         Moves an aircraft between from_node and to_node and checks if to_node or goal is reached.
         INPUT:
@@ -106,6 +106,10 @@ class Aircraft(object):
         if self.position == xy_to and self.path_to_goal[0][1] == t + dt:  # If with this move its current to node is reached
             if self.position == self.nodes_dict[self.goal]["xy_pos"]:  # if the final goal is reached
                 self.status = "arrived"
+                for constraint in constraints:
+                    # remove constraints which where constructed by this AC
+                    if constraint['acid'] == self.id:
+                        constraints.remove(constraint)
 
             else:  # current to_node is reached, update the remaining path
                 remaining_path = self.path_to_goal
@@ -173,7 +177,7 @@ class Aircraft(object):
             start_node = self.start  # node from which planning should be done
             goal_node = self.goal  # node to which planning should be done
 
-            success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t)
+            success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t, dt)
 
             if success:
                 if path[0][1] != t:
@@ -196,13 +200,19 @@ class Aircraft(object):
                     node = node_time_pair[0]    # find node_id
                     timestep = node_time_pair[1]
                     # vertex constraint
-                    constraints.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep})
+                    # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can be removed
+                    # once this aircraft has reached its goal
+                    constraints.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep, 'acid': self.id})
                     # edge constraint: only if aircraft has moved already
+                    # TODO: the edge constraints are not constructed right. The same 2 nodes are put in the
+                    # constraint instead of the current node and previous node
                     if not timestep <= self.spawntime + dt:
                         # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
                         # print('timestep: ' + str(timestep))
                         previous_node = path[int((1/dt) * timestep - (1/dt) * self.spawntime - 1)][0]     # TODO: double check this, gave errors
-                        constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep})
+                        # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can be removed
+                        # once this aircraft has reached its goal
+                        constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep, 'acid': self.id})
 
                 print('constraints after plan_prioritized: ' + str(constraints))
                 return expanded_nodes, constraints, 0

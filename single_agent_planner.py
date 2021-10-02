@@ -118,15 +118,18 @@ def build_constraint_table(constraints, spawntime):
     """
     if len(constraints) == 0:
         print('no constraints for timestep ' + str(spawntime) )
-    # constraints will be indexed by time step:
+    # constraints will be indexed by timestep:
     constraint_table = dict()
     for constraint in constraints:
         if constraint['spawntime'] <= spawntime:
             # check if key if timestep already has constraints
             if constraint['timestep'] not in constraint_table:
+                # constraint_table[constraint['timestep']] = []
                 constraint_table[constraint['timestep']] = []
+                # constraint_table[constraint['timestep']].append(constraint)
                 constraint_table[constraint['timestep']].append(constraint)
             else:
+                # constraint_table[constraint['timestep']].append(constraint)
                 constraint_table[constraint['timestep']].append(constraint)
     print('constraint table for spawntime ' + str(spawntime) +': ' + str(constraint_table))
     return constraint_table
@@ -161,7 +164,7 @@ def is_constrained(curr_node, next_node, next_time, constraint_table):
 
 
 # added to keep the simple agent astar working until we finish this legit one
-def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime):
+def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime, dt):
     """
     Single agent A* search. Time start can only be the time that an agent is at a node.
     INPUT:
@@ -210,10 +213,10 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime):
                 constrained = True
             if not constrained:
                 child = {'loc': neighbor,
-                         'g_val': curr['g_val'] + 0.5,
+                         'g_val': curr['g_val'] + dt,
                          'h_val': heuristics[neighbor][goal_node_id],
                          'parent': curr,
-                         'timestep': curr['timestep'] + 0.5}
+                         'timestep': curr['timestep'] + dt}
                 if (child['loc'], child['timestep']) in closed_list:
                     existing_node = closed_list[(child['loc'], child['timestep'])]
                     if compare_nodes(child, existing_node):
@@ -227,11 +230,13 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime):
         constrained = is_constrained(curr['loc'], curr['loc'], curr['timestep'] + 1, constraint_table)
         if not constrained:
             child_loc = curr['loc']
+            # there was a mistake here where the timestep got incremented by 1. Fixed this
+            # and the head-on collisions seemed to be fixed 
             child = {'loc': child_loc,
-                     'g_val': curr['g_val'] + 1,  # was curr['g_val'] + 1
+                     'g_val': curr['g_val'] + dt,  # was curr['g_val'] + 1
                      'h_val': heuristics[child_loc][goal_node_id],
                      'parent': curr,
-                     'timestep': curr['timestep'] + 1}
+                     'timestep': curr['timestep'] + dt}
 
             if (child['loc'], child['timestep']) in closed_list:
                 existing_node = closed_list[(child['loc'], child['timestep'])]

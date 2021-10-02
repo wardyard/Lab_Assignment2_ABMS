@@ -29,7 +29,7 @@ planner = "Prioritized"  # choose which planner to use (currently only Independe
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.5  # set at 0.1 as default
+visualization_speed = 0.1  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -306,7 +306,8 @@ while running:
     # Move the aircraft that are taxiing
     for ac in aircraft_lst:
         if ac.status == "taxiing":
-            ac.move(dt, t)
+            # added constraints parameter to be able to remove contraints of arrived AC
+            ac.move(dt, t, constraints)
             # if AC has reached its goal, increment the throughput value by 1, else,
             if ac.status == "arrived":
                 ac_arrived_t += 1
