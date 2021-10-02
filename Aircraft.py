@@ -204,8 +204,6 @@ class Aircraft(object):
                     # once this aircraft has reached its goal
                     constraints.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep, 'acid': self.id})
                     # edge constraint: only if aircraft has moved already
-                    # TODO: the edge constraints are not constructed right. The same 2 nodes are put in the
-                    # constraint instead of the current node and previous node
                     if not timestep <= self.spawntime + dt:
                         # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
                         # print('timestep: ' + str(timestep))

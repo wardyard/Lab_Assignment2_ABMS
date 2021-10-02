@@ -4,7 +4,6 @@ Implement prioritized planner here
 import time
 
 
-# TODO: remove constraints for AC which have arrived at their destination
 
 def run_prioritized_planner(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
     """

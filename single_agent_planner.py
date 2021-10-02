@@ -231,7 +231,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime, 
         if not constrained:
             child_loc = curr['loc']
             # there was a mistake here where the timestep got incremented by 1. Fixed this
-            # and the head-on collisions seemed to be fixed 
+            # and the head-on collisions seemed to be fixed
             child = {'loc': child_loc,
                      'g_val': curr['g_val'] + dt,  # was curr['g_val'] + 1
                      'h_val': heuristics[child_loc][goal_node_id],
