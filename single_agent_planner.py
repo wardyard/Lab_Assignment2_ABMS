@@ -206,11 +206,27 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime, 
         # no 180 turns are allowed
         for neighbor in nodes_dict[curr['loc']]["neighbors"]:
             # check if moving to this neighbor is constrained, if not, a new child node may be constructed
-            constrained = is_constrained(curr['loc'], neighbor, curr['timestep'] + 0.5, constraint_table)
-            # if the selected neighbour is the previous node, forbid the move
-            # this indicates a 180° turn
-            if len(path) > 1 and neighbor == path[-2][0]:
-                constrained = True
+            constrained = is_constrained(curr['loc'], neighbor, curr['timestep'] + dt, constraint_table)
+            # if the selected neighbor causes the AC to make a 180° move, forbid the move
+            # note: is an AC is stationary at a node for a certain amount of timesteps, it cannot
+            # return to the node it was at before this one either 
+            if len(path) > 1:
+                last_node = path[-1][0]  # equal to 'current position' in the path construction
+                # print('current path: ' + str(path))
+                # print('last node: ' + str(last_node))
+                # print('neighbor: ' + str(neighbor))
+                index = -1
+                different = False
+                while not different and len(path) > index * (-1):
+                    index += -1
+                    different = last_node != path[index][0]
+                if different:
+                    diff_node = path[index][0]
+                    # print('diff_node: ' + str(diff_node))
+                    if neighbor == diff_node:
+                        constrained = True
+                # else:
+                  #  print('no different node in previous positions')
             if not constrained:
                 child = {'loc': neighbor,
                          'g_val': curr['g_val'] + dt,
@@ -227,7 +243,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime, 
                     push_node(open_list, child)
 
         # add child node which stays at same position for 1 timestep
-        constrained = is_constrained(curr['loc'], curr['loc'], curr['timestep'] + 1, constraint_table)
+        constrained = is_constrained(curr['loc'], curr['loc'], curr['timestep'] + dt, constraint_table)
         if not constrained:
             child_loc = curr['loc']
             # there was a mistake here where the timestep got incremented by 1. Fixed this
