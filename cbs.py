@@ -13,7 +13,6 @@ def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, 
     deadlocks = 0
     expanded_nodes = 0  # KPI
     start = time.perf_counter_ns()  # KPI
-
     for ac in aircraft_list:
         if ac.spawntime == t:   # only is a new AC has spawned, CBS will be ran again
             ac.status = "taxiing"
@@ -31,7 +30,8 @@ def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, 
 def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
 
     open_list = []
-
+    num_of_generated = 0
+    num_of_expanded = 0
     # generate root node with no constraints. Paths of root node are planned independently
     root = {
         'cost': 0,
@@ -58,11 +58,11 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
 
     root['cost'] = get_sum_of_cost(root['paths'])
     root['collisions'] = detect_collisions(root['paths'], root['aircrafts'], dt)
-    push_node(open_list, root)
+    num_of_generated = push_node(open_list, root, num_of_generated)
 
     while len(open_list) > 0:
         # pop node with smallest cost
-        p = pop_node(open_list)
+        p, num_of_expanded = pop_node(open_list, num_of_expanded)
 
         # if there are no collisions, the solution is optimal
         if not p['collisions']:
@@ -95,7 +95,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
             q = {
                 'cost': 0,
                 'constraints': q_constraints,
-                'paths': p['paths'].copy,
+                'paths': p['paths'].copy(),
                 'collisions': [],
                 'aircrafts': p['aircrafts']     # TODO: should this be a copy? Don't think so since we want to change instance variables of these AC
             }
@@ -114,15 +114,16 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
                 if success:
                     # find paths index of this aircraft via the aircrafts list
                     index = q['aircrafts'].index(aircr)
-                    print('index: ' + str(index))
+                    #print('index: ' + str(index))
                     # replace the path corresponding to this AC
+                    #print('q[paths]: ' + str(q['paths']))
                     q['paths'][index] = q_path
                     q['collisions'] = detect_collisions(q['paths'], q['aircrafts'], dt)
-                    push_node(open_list, q)
+                    num_of_generated = push_node(open_list, q, num_of_generated)
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
 
-    return None
+    return num_of_generated, num_of_expanded
 
 
 def detect_collision(path1, path2, dt):
@@ -244,15 +245,17 @@ def get_sum_of_cost(paths):
         rst += len(path) - 1
     return rst
 
-def push_node(open_list, node):
+def push_node(open_list, node, num_of_generated):
     # TODO: number of generated nodes
-    heapq.heappush(open_list, (node['cost'], len(node['collisions']), node))
-    # print("Generate node {}".format(self.num_of_generated))
-    # self.num_of_generated += 1
+    heapq.heappush(open_list, (node['cost'], len(node['collisions']), num_of_generated, node))
+    print("Generate node {}".format(num_of_generated))
+    num_of_generated += 1
+    print('open list: ' + str(open_list))
+    return num_of_generated
 
-def pop_node(open_list):
+def pop_node(open_list, num_of_expanded):
     # TODO: expanded nodes
-    _, _, node = heapq.heappop(open_list)
-    # print("Expand node {}".format(id))
-    # self.num_of_expanded += 1
-    return node
+    _, _, id, node = heapq.heappop(open_list)
+    print("Expand node {}".format(id))
+    num_of_expanded += 1
+    return node, num_of_expanded

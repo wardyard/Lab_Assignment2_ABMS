@@ -29,7 +29,7 @@ planner = "CBS"  # choose which planner to use (currently only Independent is im
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.5  # set at 0.1 as default
+visualization_speed = 0.1  # set at 0.1 as default
 
 
 # %%Function definitions
