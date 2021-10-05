@@ -29,7 +29,7 @@ planner = "CBS"  # choose which planner to use (currently only Independent is im
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.1  # set at 0.1 as default
+visualization_speed = 0.5  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -224,6 +224,7 @@ while running:
     # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
     # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
     # are located at one of these positions
+
     if random.random() < 0.2:
         if random.random() < 0.5:  # departing AC
             # determine at which gate the AC starts
@@ -267,7 +268,8 @@ while running:
             aircraft_lst.append(ac)
             spawned_ac += 1
         print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
-    '''
+    """
+    
     if t == 1:
         ac = Aircraft(1, 'A', 37, 36, t,
                       nodes_dict)  # As an example we will create one aicraft arriving at node 37 with the goal of reaching node 36
@@ -278,7 +280,7 @@ while running:
         aircraft_lst.append(ac)
         aircraft_lst.append(ac1)
         aircraft_lst.append(ac2)
-    '''
+    """
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
@@ -295,7 +297,10 @@ while running:
         # computing time performance indicator
         computing_times.append(time_delta)
     elif planner == "CBS":
-        time_delta, expanded_nodes, deadlocks = run_CBS(aircraft_lst, nodes_dict, edges_dict, heuristics, constraints, dt ,t)
+        time_delta, expanded_nodes, deadlocks = run_CBS(aircraft_lst, nodes_dict, edges_dict,
+                                                        heuristics, dt, t)
+        # computing time performance indicator
+        computing_times.append(time_delta)
     # elif planner == -> you may introduce other planners here
     else:
         raise Exception("Planner:", planner, "is not defined.")
@@ -311,6 +316,7 @@ while running:
             # if AC has reached its goal, increment the throughput value by 1, else,
             if ac.status == "arrived":
                 ac_arrived_t += 1
+                #aircraft_lst.remove(ac)
 
     # add amount of arrived AC for this timestep in throughput dict
     throughput[t] = ac_arrived_t

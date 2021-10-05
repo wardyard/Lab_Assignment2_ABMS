@@ -116,7 +116,6 @@ def build_constraint_table(constraints, spawntime):
     Returns:
         constraint_table
     """
-    # TODO: implement CBS constraint table construction via ACID
     if len(constraints) == 0:
         print('no constraints for timestep ' + str(spawntime) )
     # constraints will be indexed by timestep:

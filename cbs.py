@@ -8,8 +8,7 @@ from single_agent_planner import astar
 # TODO: remove constraints of AC which have arrived
 
 
-def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
-
+def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
     deadlocks = 0
     expanded_nodes = 0  # KPI
     start = time.perf_counter_ns()  # KPI
@@ -18,17 +17,17 @@ def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, 
             ac.status = "taxiing"
             ac.position = nodes_dict[ac.start]["xy_pos"]
             # TODO: expanded nodes and deadlocks returns
-            cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t)
+            exp_nodes = cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t)
             #deadlocks += deadlocks
-            #expanded_nodes += exp_nodes
+            expanded_nodes += exp_nodes
     stop = time.perf_counter_ns()
-    time_delta = stop - start  # in nanoseconds
+    time_delta = stop - start  # in nanosecond
 
     return time_delta, expanded_nodes, deadlocks
 
 
-def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
-
+def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
+    print('------------------------------------------------------------')
     open_list = []
     num_of_generated = 0
     num_of_expanded = 0
@@ -40,6 +39,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
         'collisions': [],
         'aircrafts': []
     }
+    print('1) Planning independent paths for root node ')
     for ac in aircraft_list:
         if ac.status == "taxiing":
             # plan path from current AC location and timestep, since the AC might have already moved on the grid
@@ -47,23 +47,25 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
             # for every AC from spawntime, CBS replans for every AC from the current time
 
             # current AC position is start position if it hasn't moved, and from_to[0] if it has
-            curr_pos = ac.from_to[0] if ac.from_to[0] != 0 else ac.start
+            curr_pos = ac.from_to[0] if int(ac.from_to[0]) != 0 else ac.start
             # TODO: I think the paths are created from the current timestep onwards => check this
-            succes, path, deadlocks = astar(nodes_dict, curr_pos, ac.goal, heuristics, constraints, t, dt, ac.id, True)
+            succes, path, deadlocks = astar(nodes_dict, curr_pos, ac.goal, heuristics, [], t, dt, ac.id, True)
             if path is None:
                 raise BaseException('No solution for CBS root node')
             root['paths'].append(path)
             # print('path: ' + str(path))
             root['aircrafts'].append(ac)
-
+    print('2) Root node paths: ' + str(root['paths']))
     root['cost'] = get_sum_of_cost(root['paths'])
     root['collisions'] = detect_collisions(root['paths'], root['aircrafts'], dt)
+    print('3) Root node collisions: ' + str(root['collisions']))
+    print('4) Root node cost: ' + str(root['cost']))
     num_of_generated = push_node(open_list, root, num_of_generated)
 
     while len(open_list) > 0:
         # pop node with smallest cost
         p, num_of_expanded = pop_node(open_list, num_of_expanded)
-
+        print('5) Smallest cost parent node: ' + str(p))
         # if there are no collisions, the solution is optimal
         if not p['collisions']:
             print('no CBS collisions, optimal paths')
@@ -72,25 +74,31 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
                 ac = p['aircrafts'][i]
                 path = p['paths'][i]
                 ac.path_to_goal = path[1:]
+                ac.compute_time_distance(path)
                 next_node_id = ac.path_to_goal[0][0]
                 ac.from_to = [path[0][0], next_node_id]
-            return
+                print('optimal path AC ' + str(ac.id) + ': ' + str(ac.path_to_goal))
+            return num_of_expanded
 
         # there are collisions, extract 1 of them
         collision = p['collisions'][0]
+        print('6) There are collisions in parent node: ' + str(collision))
         # create 2 constraints out of the collision
         # not that constraints have different format than for prioritized planning due to spawntime not being
         # important for constraint obedience anymore
         constraints = standard_splitting(collision)
-
+        print('6.6) Constraints: ' + str(constraints))
         # loop over both constraints, generating a new node for each one
         for constraint in constraints:
+            # TODO: constraints get added over and over again to q. Something's wrong here
+            print('7) looping over constraints, constraint: ' + str(constraint))
             # current constraints from parent node
             p_constraints = p['constraints'] if p['constraints'] is not None else []
-            # make a copy of these constraints and append the constrained used in this loop
+            # make a copy of these constraints and append the constraint used in this loop
             # this way, we'll create a child node with just 1 extra constraint
             q_constraints = p_constraints.copy()
             q_constraints.append(constraint)
+            print('8) q_constraints: ' + str(q_constraints))
             # create child node. The paths will be updated later on
             q = {
                 'cost': 0,
@@ -101,6 +109,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
             }
             # find out the aircraft ID of the aircraft in the constraint
             q_acid = constraint['acid']
+            print('9) ACID: ' + str(q_acid))
             # extract the aircraft itself from the aircrafts connected to this node
             aircr = None
             for ac in q['aircrafts']:
@@ -108,22 +117,32 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
                     aircr = ac  # TODO: check inheritance
             # calculate path for the aircraft with a new constraint
             if aircr is not None:
-                curr_pos = aircr.from_to[0]
-                success, q_path, expanded_nodes = astar(nodes_dict, curr_pos, aircr.goal, heuristics, q_constraints, t, dt, q_acid, True)
+                # current position is different from start node if AC has already moved
+                curr_pos = aircr.from_to[0] if aircr.from_to[0] != 0 else aircr.start  # TODO: this fucks up I think
+                print('10) curr_pos: ' + str(curr_pos))
+                print('11) aircr.goal: ' + str(aircr.goal))
+                # TODO: the returned path seems incorrect w.r.t. curr_pos and aircr.goal
+                success, q_path, expanded_nodes = astar(nodes_dict, curr_pos, aircr.goal, heuristics, q_constraints, t,
+                                                        dt, q_acid, True)
                 # if a path was found
                 if success:
+                    print('12) Path was found for aircraft with extra constraint')
+                    print('13) Found path for AC ' + str(q_acid) + ' : ' + str(q_path))
                     # find paths index of this aircraft via the aircrafts list
                     index = q['aircrafts'].index(aircr)
-                    #print('index: ' + str(index))
+                    print('index: ' + str(index))
                     # replace the path corresponding to this AC
                     #print('q[paths]: ' + str(q['paths']))
                     q['paths'][index] = q_path
                     q['collisions'] = detect_collisions(q['paths'], q['aircrafts'], dt)
+                    q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
+                else:
+                    print('13) no path found for AC with extra constraint')
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
 
-    return num_of_generated, num_of_expanded
+    return None
 
 
 def detect_collision(path1, path2, dt):
@@ -153,18 +172,18 @@ def detect_collision(path1, path2, dt):
             return [[loc1], timestep]
         # edge collision
         elif loc1 == loc2_t_1 and loc2 == loc1_t_1:
-            return [[loc1, loc2], timestep + dt]
+            return [[loc1, loc2], timestep]  # used to be timestep + dt
     return None
 
 
-def get_location(path, time):
+def get_location(path, t):
     # paths has following structure: [(node1, t1), (node2, t2), (node3, t3), ...],
     # we only want the nodes
-    if time < 0:
+    if t < 0:
         return path[0][0]
-    elif time < len(path):
+    elif t < len(path):
         for node_time_pair in path:
-            if node_time_pair[1] == time:  # if this node_time_pair is for the correct timestep
+            if node_time_pair[1] == t:  # if this node_time_pair is for the correct timestep
                 return node_time_pair[0]  # return node
     else:
         return path[-1][0]  # wait at the goal location
@@ -198,6 +217,7 @@ def detect_collisions(paths, aircrafts, dt):
                     ac2 = aircrafts[j]
                     collisions.append({'acid1': ac1.id, 'acid2': ac2.id, 'loc': collision[0], 'timestep': collision[1]})
                 combs.append((i, j))
+    print('Detected collisions: ' + str(collisions))
     return collisions
 
 
@@ -218,15 +238,15 @@ def standard_splitting(collision):
     # create a new function, build_constraint_table_cbs. In the a_star function, it will first be checked whether
     # it is optimizing for prioritized or cbs and then use the correct constraint table builder
     constraints = []
-
+    print('Standard splitting collision: ' + str(collision))
     loc = collision['loc']
     timestep = collision['timestep']
 
     # edge constraint
     if len(loc) > 1:
-        constraint1 = {'acid': collision['acid1'], 'loc': loc, 'timestep': timestep}
+        constraint1 = {'acid': collision['acid1'], 'loc': [loc[0], loc[1]], 'timestep': timestep}
         # reverse positions for second constraint
-        constraint2 = {'acid': collision['acid1'], 'loc': [loc[1], loc[0]], 'timestep': timestep}
+        constraint2 = {'acid': collision['acid2'], 'loc': [loc[1], loc[0]], 'timestep': timestep}
         constraints.append(constraint1)
         constraints.append(constraint2)
 
@@ -235,7 +255,7 @@ def standard_splitting(collision):
         constraint2 = {'acid': collision['acid2'], 'loc': loc, 'timestep': timestep}
         constraints.append(constraint1)
         constraints.append(constraint2)
-
+    print('Standard splitting constraints: ' + str(constraints))
     return constraints
 
 
@@ -246,16 +266,24 @@ def get_sum_of_cost(paths):
     return rst
 
 def push_node(open_list, node, num_of_generated):
-    # TODO: number of generated nodes
+    """
+    pushes node to open_list while maintaining ordering of minimum cost
+    Args:
+        open_list:
+        node: node to be pushed to open list
+        num_of_generated:
+
+    Returns:
+
+    """
     heapq.heappush(open_list, (node['cost'], len(node['collisions']), num_of_generated, node))
     print("Generate node {}".format(num_of_generated))
     num_of_generated += 1
-    print('open list: ' + str(open_list))
+    #print('open list: ' + str(open_list))
     return num_of_generated
 
 def pop_node(open_list, num_of_expanded):
-    # TODO: expanded nodes
     _, _, id, node = heapq.heappop(open_list)
-    print("Expand node {}".format(id))
+    #print("Expand node {}".format(id))
     num_of_expanded += 1
     return node, num_of_expanded

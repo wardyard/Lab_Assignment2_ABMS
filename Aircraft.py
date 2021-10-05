@@ -222,7 +222,6 @@ class Aircraft(object):
                 return expanded_nodes, constraints, 1
 
 
-
     def compute_time_distance(self, path):
         """
         computes the performance indicators for travel time, travel distance and their ratio
