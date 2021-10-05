@@ -306,7 +306,7 @@ while running:
     # Move the aircraft that are taxiing
     for ac in aircraft_lst:
         if ac.status == "taxiing":
-            # added constraints parameter to be able to remove contraints of arrived AC
+            # added constraints parameter to be able to remove constraints of arrived AC
             ac.move(dt, t, constraints)
             # if AC has reached its goal, increment the throughput value by 1, else,
             if ac.status == "arrived":

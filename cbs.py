@@ -45,12 +45,15 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
             # plan path from current AC location and timestep, since the AC might have already moved on the grid
             # the start location shouldn't be used. Note the difference between rpioritized here: prioritized plans
             # for every AC from spawntime, CBS replans for every AC from the current time
-            curr_pos = ac.from_to[0]
+
+            # current AC position is start position if it hasn't moved, and from_to[0] if it has
+            curr_pos = ac.from_to[0] if ac.from_to[0] != 0 else ac.start
             # TODO: I think the paths are created from the current timestep onwards => check this
-            path = astar(nodes_dict, curr_pos, ac.goal, heuristics, constraints, t, dt, ac.id, True)
+            succes, path, deadlocks = astar(nodes_dict, curr_pos, ac.goal, heuristics, constraints, t, dt, ac.id, True)
             if path is None:
                 raise BaseException('No solution for CBS root node')
             root['paths'].append(path)
+            # print('path: ' + str(path))
             root['aircrafts'].append(ac)
 
     root['cost'] = get_sum_of_cost(root['paths'])
@@ -61,14 +64,17 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
         # pop node with smallest cost
         p = pop_node(open_list)
 
-        # if there ar o collisions, the solution is optimal
+        # if there are no collisions, the solution is optimal
         if not p['collisions']:
             print('no CBS collisions, optimal paths')
             # add paths to the Aircraft which are currently in the map
-            for i in len(p['aircrafts']):
+            for i in range(len(p['aircrafts'])):
                 ac = p['aircrafts'][i]
                 path = p['paths'][i]
-                ac.path_to_goal = path
+                ac.path_to_goal = path[1:]
+                next_node_id = ac.path_to_goal[0][0]
+                ac.from_to = [path[0][0], next_node_id]
+            return
 
         # there are collisions, extract 1 of them
         collision = p['collisions'][0]
@@ -108,6 +114,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
                 if success:
                     # find paths index of this aircraft via the aircrafts list
                     index = q['aircrafts'].index(aircr)
+                    print('index: ' + str(index))
                     # replace the path corresponding to this AC
                     q['paths'][index] = q_path
                     q['collisions'] = detect_collisions(q['paths'], q['aircrafts'], dt)
