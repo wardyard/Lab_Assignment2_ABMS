@@ -148,7 +148,6 @@ class Aircraft(object):
                 print("travel distance AC", self.id, ":", self.path_length)
                 print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
 
-
             else:
                 raise Exception("No solution found for", self.id)
 
@@ -158,7 +157,7 @@ class Aircraft(object):
         return exp_nodes
 
 
-    def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints,dt, t):
+    def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, dt, t):
         """
         Plans path for taxiing aircraft where constraints are constructed on the go in terms of priority
         Args:
@@ -177,7 +176,10 @@ class Aircraft(object):
             start_node = self.start  # node from which planning should be done
             goal_node = self.goal  # node to which planning should be done
 
-            success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t, dt)
+            # the parameter 0 denotes that the aircraft Id is not important here. It won't be used in the A star algorithm.
+            # The False parameter indicated that the A star algorithm has to construct the constraint table using
+            # the prioritized constraint format
+            success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t, dt, 0, False)
 
             if success:
                 if path[0][1] != t:

@@ -24,7 +24,7 @@ edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (nod
 
 # Parameters that can be changed:
 simulation_time = 40
-planner = "Prioritized"  # choose which planner to use (currently only Independent is implemented)
+planner = "CBS"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
@@ -295,7 +295,7 @@ while running:
         # computing time performance indicator
         computing_times.append(time_delta)
     elif planner == "CBS":
-        run_CBS()
+        time_delta, expanded_nodes, deadlocks = run_CBS(aircraft_lst, nodes_dict, edges_dict, heuristics, constraints, dt ,t)
     # elif planner == -> you may introduce other planners here
     else:
         raise Exception("Planner:", planner, "is not defined.")

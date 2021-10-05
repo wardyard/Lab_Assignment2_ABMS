@@ -116,13 +116,14 @@ def build_constraint_table(constraints, spawntime):
     Returns:
         constraint_table
     """
+    # TODO: implement CBS constraint table construction via ACID
     if len(constraints) == 0:
         print('no constraints for timestep ' + str(spawntime) )
     # constraints will be indexed by timestep:
     constraint_table = dict()
     for constraint in constraints:
         if constraint['spawntime'] <= spawntime:
-            # check if key if timestep already has constraints
+            # check if key timestep already has constraints
             if constraint['timestep'] not in constraint_table:
                 # constraint_table[constraint['timestep']] = []
                 constraint_table[constraint['timestep']] = []
@@ -132,6 +133,40 @@ def build_constraint_table(constraints, spawntime):
                 # constraint_table[constraint['timestep']].append(constraint)
                 constraint_table[constraint['timestep']].append(constraint)
     print('constraint table for spawntime ' + str(spawntime) +': ' + str(constraint_table))
+    return constraint_table
+
+
+def build_constraint_table_cbs(constraints, acid):
+    """
+        builds a dictionary where the keys are timesteps. For these keys, a list of constraints corresponding to
+        this timestep is constructed. Whether or not a constraint is applicable for a certain aircraft is decided
+        based on the aircraft ID time of the aircraft
+        Args:
+            acid: aircraft ID of the aircraft for which the table has to be constructed
+            constraints: list of all constraints
+
+        Returns:
+            constraint_table
+        """
+    # edge constraint form: ['acid': 2, 'loc': [35, 39], 'timestep': 1.5]
+    # vertex constraint form: ['acid': 2, 'loc': [35], 'timestep': 1.5]
+
+    if len(constraints) == 0:
+        print('No CBS constraints for acid  ' + str(acid))
+    # constraints will be indexed by timestep:
+    constraint_table = dict()
+    for constraint in constraints:
+        if constraint['acid'] == acid:
+            # check if key timestep already has constraints
+            if constraint['timestep'] not in constraint_table:
+                # constraint_table[constraint['timestep']] = []
+                constraint_table[constraint['timestep']] = []
+                # constraint_table[constraint['timestep']].append(constraint)
+                constraint_table[constraint['timestep']].append(constraint)
+            else:
+                # constraint_table[constraint['timestep']].append(constraint)
+                constraint_table[constraint['timestep']].append(constraint)
+    print('CBS constraint table for acid ' + str(acid) + ': ' + str(constraint_table))
     return constraint_table
 
 
@@ -164,7 +199,7 @@ def is_constrained(curr_node, next_node, next_time, constraint_table):
 
 
 # added to keep the simple agent astar working until we finish this legit one
-def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime, dt):
+def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time, dt, acid, cbs):
     """
     Single agent A* search. Time start can only be the time that an agent is at a node.
     INPUT:
@@ -184,14 +219,18 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime, 
 
     from_node_id = from_node
     goal_node_id = goal_node
-    time_start = spawntime
+    time_start = start_time
 
     open_list = []
     closed_list = dict()
     earliest_goal_timestep = time_start
     h_value = heuristics[from_node_id][goal_node_id]
-    # construct constraint table for this AC
-    constraint_table = build_constraint_table(constraints, time_start)
+    # construct constraint table for this AC based on whether we're planning using CBS or not
+    if not cbs:
+        constraint_table = build_constraint_table(constraints, time_start)
+    elif cbs:
+        constraint_table = build_constraint_table_cbs(constraints, acid)
+
     root = {'loc': from_node_id, 'g_val': 0, 'h_val': h_value, 'parent': None, 'timestep': time_start}
     push_node(open_list, root)
     closed_list[(root['loc'], root['timestep'])] = root
@@ -209,7 +248,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, spawntime, 
             constrained = is_constrained(curr['loc'], neighbor, curr['timestep'] + dt, constraint_table)
             # if the selected neighbor causes the AC to make a 180° move, forbid the move
             # note: is an AC is stationary at a node for a certain amount of timesteps, it cannot
-            # return to the node it was at before this one either 
+            # return to the node it was at before this one either
             if len(path) > 1:
                 last_node = path[-1][0]  # equal to 'current position' in the path construction
                 # print('current path: ' + str(path))
