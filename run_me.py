@@ -280,7 +280,10 @@ while running:
         aircraft_lst.append(ac)
         aircraft_lst.append(ac1)
         aircraft_lst.append(ac2)
-
+    if t == 2.5:
+        ac1 = Aircraft(4, 'D', 98, 2, t,
+                       nodes_dict)
+        aircraft_lst.append(ac1)
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)

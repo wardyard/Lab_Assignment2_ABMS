@@ -213,7 +213,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
                 else:
-                    print('13) no path found for AC with extra constraint')
+                    raise Exception('13) no path found for AC with extra constraint')
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
 
@@ -243,10 +243,12 @@ def detect_collision(path1, path2, dt):
         loc1_t_1 = get_location(path1, timestep + dt)
         loc2_t_1 = get_location(path2, timestep + dt)
         # vertex collision
-        if loc1 == loc2:
+        # loc is None when t > max t in path, meaning the AC has arrived.
+        if loc1 is not None and loc2 is not None and loc1 == loc2:
             return [[loc1], timestep]
         # edge collision
-        elif loc1 == loc2_t_1 and loc2 == loc1_t_1:
+        # TODO: find a pretty way to do this 
+        elif loc1 is not None and loc2 is not None and loc1_t_1 is not None and loc2_t_1 is not None and loc1 == loc2_t_1 and loc2 == loc1_t_1:
             return [[loc1, loc2], timestep]  # used to be timestep + dt
     return None
 
@@ -260,8 +262,9 @@ def get_location(path, t):
         for node_time_pair in path:
             if node_time_pair[1] == t:  # if this node_time_pair is for the correct timestep
                 return node_time_pair[0]  # return node
-    else:
-        return path[-1][0]  # wait at the goal location
+    else:   # AC has arrived, it won't have a position anymore
+        return None
+        # return path[-1][0]  # wait at the goal location
 
 
 def detect_collisions(paths, acids, dt):
