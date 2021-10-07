@@ -143,7 +143,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
         # create 2 constraints out of the collision
         # not that constraints have different format than for prioritized planning due to spawntime not being
         # important for constraint obedience anymore
-        constraints = standard_splitting(collision)
+        constraints = standard_splitting(collision, dt)
         print('6.6) Constraints: ' + str(constraints))
         # loop over both constraints, generating a new node for each one
         for constraint in constraints:
@@ -196,9 +196,10 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                                                         dt, q_acid, True)
                 # if a path was found, update the AC instance variables and update Q node
                 if success:
-                    aircr.path_to_goal = q_path[1:]
-                    next_node_id = aircr.path_to_goal[0][0]
+                    aircr.path_to_goal = q_path[1:].copy()
+                    next_node_id = q_path[1][0]
                     aircr.from_to = [path[0][0], next_node_id]
+                    print('12) aircr.from_to updated: ' + str(aircr.from_to))
                     print('12) Path was found for aircraft with extra constraint')
                     print('13) Found path for AC ' + str(q_acid) + ' : ' + str(q_path))
                     # find paths index of this aircraft via the ACIDS list
@@ -247,7 +248,7 @@ def detect_collision(path1, path2, dt):
         if loc1 is not None and loc2 is not None and loc1 == loc2:
             return [[loc1], timestep]
         # edge collision
-        # TODO: find a pretty way to do this 
+        # TODO: find a pretty way to do this
         elif loc1 is not None and loc2 is not None and loc1_t_1 is not None and loc2_t_1 is not None and loc1 == loc2_t_1 and loc2 == loc1_t_1:
             return [[loc1, loc2], timestep]  # used to be timestep + dt
     return None
@@ -296,7 +297,7 @@ def detect_collisions(paths, acids, dt):
     return collisions
 
 
-def standard_splitting(collision):
+def standard_splitting(collision, dt):
     # Task 3.2: Return a list of (two) constraints to resolve the given collision
     #           Vertex collision: the first constraint prevents the first agent to be at the specified location at the
     #                            specified timestep, and the second constraint prevents the second agent to be at the
@@ -319,9 +320,9 @@ def standard_splitting(collision):
 
     # edge constraint
     if len(loc) > 1:
-        constraint1 = {'acid': collision['acid1'], 'loc': [loc[0], loc[1]], 'timestep': timestep}
+        constraint1 = {'acid': collision['acid1'], 'loc': [loc[0], loc[1]], 'timestep': timestep + dt}
         # reverse positions for second constraint
-        constraint2 = {'acid': collision['acid2'], 'loc': [loc[1], loc[0]], 'timestep': timestep}
+        constraint2 = {'acid': collision['acid2'], 'loc': [loc[1], loc[0]], 'timestep': timestep + dt}
         constraints.append(constraint1)
         constraints.append(constraint2)
 
