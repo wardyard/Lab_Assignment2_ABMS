@@ -5,10 +5,25 @@ import time
 import heapq
 from single_agent_planner import astar
 
-# TODO: remove constraints of AC which have arrived
 
 
 def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
+    """
+    Performs CBS planning. Everytime a new AC has spawned, the CBS algorithm plans the paths for all AC in the map.
+    AC which have arrived at their destination will not be counted in planning
+    Args:
+        aircraft_list: the global aircraft list, containing both arrived and taxiing aircraft
+        nodes_dict: nodes of the grid
+        edges_dict: edges
+        heuristics:
+        dt: timestep difference
+        t: current timestep in simulation
+
+    Returns:
+        time_delta: computation time
+        expanded_nodes: number of expanded nodes needed for a solution
+        deadlocks: amount of deadlocks occured
+    """
     deadlocks = 0
     expanded_nodes = 0  # KPI
     start = time.perf_counter_ns()  # KPI
@@ -28,20 +43,32 @@ def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
 
 
 def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
+    """
+    Does the actual path plannning.
+    Args:
+        aircraft_list: the global aircraft list
+        nodes_dict:
+        edges_dict:
+        heuristics:
+        dt: time step difference
+        t: current simulation time step
+
+    Returns:
+        number of expanded nodes needed to solve the system at timestep t
+    """
     print('------------------------------------------------------------')
     open_list = []
     num_of_generated = 0
-    num_of_expanded = 0
-    # generate root node with no constraints. Paths of root node are planned independently
-    '''
-    root = {
-        'cost': 0,
-        'constraints': [],
-        'paths': [],
-        'collisions': [],
-        'aircrafts': []
-    }
-    '''
+    num_of_expanded = 0     # will be updated and returned upon success
+    num_of_deadlocks = 0    # deadlocks performance indicator
+
+    # generate root node with no constraints. Paths of root node are planned independently.
+    # Acids denotes the list of aircraft IDs for which a path should be planned. The paths in p['paths'] correspond
+    # to the ACID of the same index in p['acids'].
+    # The cost is the sum of path lengths.
+    # Constraints is a list with the constraints applicable to this node only. Every child node will add 1 constraint to
+    # this list.
+    # Collisions is the list of collisions that still remain for this solution of paths
     root = {
         'cost': 0,
         'constraints': [],
@@ -50,59 +77,57 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
         'acids': []
     }
     print('1) Planning independent paths for root node ')
+    # first plan the independent paths for every AC
     for ac in aircraft_list:
-        # prevent arrived aircraft to still influence the planning
+        # prevent arrived aircraft to still influence the planning, only AC on the map are accounted for
         if ac.status == "taxiing":
             # plan path from current AC location and timestep, since the AC might have already moved on the grid
-            # the start location shouldn't be used. Note the difference between rpioritized here: prioritized plans
-            # for every AC from spawntime, CBS replans for every AC from the current time
+            # the start location shouldn't be used per se. Note the difference between rpioritized here: prioritized
+            # plans for every AC from spawntime, CBS replans for every AC from the current time onwards
             print('1.1) ACID: ' + str(ac.id))
             # current AC position is start position if it hasn't moved, and from_to[0] if it has
             print('1.1) ac.from_to[0]: ' + str(ac.from_to[0]))
             print('1.1) ac.start: ' + str(ac.start))
             print('1.1) ac_path_to_goal original: ' + str(ac.path_to_goal))
+            # current position is start node if AC hasn't moved yet
             curr_pos = ac.from_to[0] if len(ac.path_to_goal) > 0 else ac.start
             print('1.1) curr_pos: ' + str(curr_pos))
-            # TODO: I think the paths are created from the current timestep onwards => check this
-            success, path, deadlocks = astar(nodes_dict, curr_pos, ac.goal, heuristics, [], t, dt, ac.id, True)
+            # no constraints are given to astar for the root node. ac.id is a parameter because it is used
+            # to construct the constraint tabel since this has a different format for CBS (see single_agent_planner)
+            success, path, expanded_nodes = astar(nodes_dict, curr_pos, ac.goal, heuristics, [], t, dt, ac.id, True)
+            # update KPI
+            num_of_expanded += expanded_nodes
             if success:
-                # added for infinite loop
+                # update the remain path to goal for this AC
                 ac.path_to_goal = path[1:]
-                # added for infinite loop
                 print('1.1) path: ' + str(path))
                 print('1.1) ac.path_to_goal: ' + str(ac.path_to_goal))
-                next_node = path[1][0] # TODO: gives index out of range error here
-
-                # added for infinite loop
+                # next node in the determined path
+                next_node = path[1][0]
+                # update the AC from_to list. this list is used to determine the current position of the aircraft when
+                # astar has to be performed
                 ac.from_to = [path[0][0], next_node]
+                # append the constructed path to the root node
                 root['paths'].append(path)
-                # print('path: ' + str(path))
-                #root['aircrafts'].append(ac)
                 # append ACID of this AC to the acids list
                 root['acids'].append(ac.id)
             else:
                 raise BaseException('No solution for CBS root node')
-        '''
-        elif ac.status == "arrived":
-            # if an Ac has arrived, the corresponding path and ACID need to be removed
-            # in addition, all the constraints need to be removed as well 
-            acid = ac.id
-            index = root['acids'].index(acid)
-            root['acids'].pop(index)
-            root['paths'].pop(index)
-            for constraint in root['constraints']: 
-                if constraint['acid'] == acid: 
-                    root['constraints'].remove(constraint)
-        '''
+
     print('2) Root node paths: ' + str(root['paths']))
+    # determine cost of root node paths
     root['cost'] = get_sum_of_cost(root['paths'])
+    # detect all the collisions that this solution of paths bring with it
     root['collisions'] = detect_collisions(root['paths'], root['acids'], dt)
     print('3) Root node collisions: ' + str(root['collisions']))
     print('4) Root node cost: ' + str(root['cost']))
+    # push this node to the open list since it's not fully expanded. this function return the number of generated nodes
+    # which is semi handy but not really used
     num_of_generated = push_node(open_list, root, num_of_generated)
 
+    # if there are still nodes unexplored:
     while len(open_list) > 0:
-        # pop node with smallest cost
+        # pop node with smallest cost. Function returns the number of expanded nodes so far
         p, num_of_expanded = pop_node(open_list, num_of_expanded)
         print('5) Smallest cost parent node: ' + str(p))
         # if there are no collisions, the solution is optimal
@@ -111,6 +136,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
             # loop over all the AC currently in the aircraft list to find aircraft which are used by p node
             for ac1 in aircraft_list:
                 acid = ac1.id
+                # if the aircraft is currently in the map:
                 if acid in p['acids']:
                     # determine index of this ACID in the p['acids'] list
                     index_p_acids = p['acids'].index(acid)
@@ -124,30 +150,19 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     ac1.compute_time_distance(acid_path)
                     if acid_path[0][1] != t:
                         raise Exception("Something is wrong with the timing of the path planning")
-                    
-            # add paths to the Aircraft which are currently in the map
-            # for i in range(len(p['aircrafts'])):  # used to be len(p['aircrafts'])
-             #   ac = p['aircrafts'][i]
-             #   path = p['paths'][i]
-             #   ac.path_to_goal = path[1:]
-             #   ac.compute_time_distance(path)
-             #   next_node_id = ac.path_to_goal[0][0]
-             #   ac.from_to = [path[0][0], next_node_id]
-             #   print('optimal path AC ' + str(ac.id) + ': ' + str(ac.path_to_goal))
-            
+
             return num_of_expanded
 
         # there are collisions, extract 1 of them
         collision = p['collisions'][0]
         print('6) There are collisions in parent node: ' + str(collision))
         # create 2 constraints out of the collision
-        # not that constraints have different format than for prioritized planning due to spawntime not being
+        # note that constraints have different format than for prioritized planning due to spawntime not being
         # important for constraint obedience anymore
         constraints = standard_splitting(collision, dt)
         print('6.6) Constraints: ' + str(constraints))
         # loop over both constraints, generating a new node for each one
         for constraint in constraints:
-            # TODO: constraints get added over and over again to q. Something's wrong here
             print('7) looping over constraints, constraint: ' + str(constraint))
             # current constraints from parent node
             p_constraints = p['constraints'] if p['constraints'] is not None else []
@@ -164,15 +179,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 'collisions': [],
                 'acids': p['acids']
             }
-            
-            #q = {
-            #    'cost': 0,
-            #    'constraints': q_constraints,
-            #    'paths': p['paths'].copy(),
-            #    'collisions': [],
-            #    'aircrafts': p['aircrafts']     # TODO: should this be a copy? Don't think so since we want to change instance variables of these AC
-            #}
-            
+
             # find out the aircraft ID of the aircraft in the constraint
             q_acid = constraint['acid']
             print('9) ACID: ' + str(q_acid))
@@ -180,25 +187,27 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
             aircr = None
             for ac2 in aircraft_list:
                 if ac2.id == q_acid:
-                    aircr = ac2  # TODO: check inheritance
+                    aircr = ac2
             print('9.9) aircr.id: ' + str(aircr.id))
             # calculate path for the aircraft with a new constraint
             if aircr is not None:
-                # current position is different from start node if AC has already moved
                 print('9.10) aircr.fomr_to[0]: ' + str(aircr.from_to[0]))
                 print('9.10) aircr.start: ' + str(aircr.start))
                 print('9.11) current time: ' + str(t) + ' AC spawntime: ' + str(aircr.spawntime))
-                curr_pos = aircr.from_to[0] if len(aircr.path_to_goal) > 0 else aircr.start  # TODO: this fucks up I think
+                # current position is different from start node if AC has already moved
+                curr_pos = aircr.from_to[0] if len(aircr.path_to_goal) > 0 else aircr.start
                 print('10) curr_pos: ' + str(curr_pos))
                 print('11) aircr.goal: ' + str(aircr.goal))
-                # TODO: the returned path seems incorrect w.r.t. the new constraint
+                # calculate path with extra constraints
                 success, q_path, expanded_nodes = astar(nodes_dict, curr_pos, aircr.goal, heuristics, q_constraints, t,
                                                         dt, q_acid, True)
+                # update KPI
+                num_of_expanded += expanded_nodes
                 # if a path was found, update the AC instance variables and update Q node
                 if success:
                     aircr.path_to_goal = q_path[1:].copy()
                     next_node_id = q_path[1][0]
-                    aircr.from_to = [path[0][0], next_node_id]
+                    aircr.from_to = [q_path[0][0], next_node_id]
                     print('12) aircr.from_to updated: ' + str(aircr.from_to))
                     print('12) Path was found for aircraft with extra constraint')
                     print('13) Found path for AC ' + str(q_acid) + ' : ' + str(q_path))
@@ -206,9 +215,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     index = q['acids'].index(q_acid)
                     print('index: ' + str(index))
                     # replace the path corresponding to this AC
-                    #print('q[paths]: ' + str(q['paths']))
-                    #q['paths'].pop(index)
-                    q['paths'][index] = q_path # TODO: error here
+                    q['paths'][index] = q_path
                     print('14) q[paths] after update: ' + str(q['paths']))
                     q['collisions'] = detect_collisions(q['paths'], q['acids'], dt)
                     q['cost'] = get_sum_of_cost(q['paths'])
@@ -222,17 +229,13 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
 
 
 def detect_collision(path1, path2, dt):
-    # Task 3.1: Return the first collision that occurs between two robot paths (or None if there is no collision)
-    #           There are two types of collisions: vertex collision and edge collision.
-    #           A vertex collision occurs if both robots occupy the same location at the same timestep
-    #           An edge collision occurs if the robots swap their location at the same timestep.
-    #           You should use "get_location(path, t)" to get the location of a robot at time t.
-
-    # vertex collision has the form [[node], timestep]
-    # edge collision has the form [[node1, node2], timestep]
+    """
+    Returns first collsion that appears between the 2 paths.
+    - vertex collision has the form [[node], timestep]
+    - edge collision has the form [[node1, node2], timestep]
+    """
 
     # iterate over longest path to ensure goal collisions are noticed as well
-    # length = len(path1) if (len(path1) > len(path2)) else len(path2)
     longest_path = path1 if len(path1) > len(path2) else path2
     for node_time_pair in longest_path:
         # extract timestep of node_time_pair in path
@@ -255,6 +258,12 @@ def detect_collision(path1, path2, dt):
 
 
 def get_location(path, t):
+    """
+    returns location of AC if it follows path at time t
+    returns None if the AC has reached its goal by timestep t. It will be deleted from the
+    map by then
+    """
+
     # paths has following structure: [(node1, t1), (node2, t2), (node3, t3), ...],
     # we only want the nodes
     if t < 0:
@@ -265,17 +274,23 @@ def get_location(path, t):
                 return node_time_pair[0]  # return node
     else:   # AC has arrived, it won't have a position anymore
         return None
-        # return path[-1][0]  # wait at the goal location
 
 
 def detect_collisions(paths, acids, dt):
-    # Task 3.1: Return a list of first collisions between all robot pairs.
-    #           A collision can be represented as dictionary that contains the id of the two robots, the vertex or edge
-    #           causing the collision, and the timestep at which the collision occurred.
-    #           You should use your detect_collision function to find a collision between two robots.
+    """
+    Returns a list of all first collisions between 2 paths of the set of paths
+    Args:
+        paths: all the current paths
+        acids: the aircraft IDs for which the paths are calculated
+        dt: time step difference
+
+    Returns:
+        list of collisions formatted in the same way as detect_collision
+
+    """
 
     # paths have following structure [(node1, t1), (node2, t2), (node3, t3), ...]
-    # we always need to compare to paths to eachother and iterate over all path combinations,
+    # we always need to compare two paths to eachother and iterate over all path combinations,
     # avoiding doubles
 
     # important! collisions have this format: {'acid1': 5, 'acid2': 3, 'loc': [32.93], 'timestep':2.5}
@@ -298,13 +313,15 @@ def detect_collisions(paths, acids, dt):
 
 
 def standard_splitting(collision, dt):
-    # Task 3.2: Return a list of (two) constraints to resolve the given collision
-    #           Vertex collision: the first constraint prevents the first agent to be at the specified location at the
-    #                            specified timestep, and the second constraint prevents the second agent to be at the
-    #                            specified location at the specified timestep.
-    #           Edge collision: the first constraint prevents the first agent to traverse the specified edge at the
-    #                          specified timestep, and the second constraint prevents the second agent to traverse the
-    #                          specified edge at the specified timestep
+    """
+    returns a list of 2 constraints to resolve the collision
+    Args:
+        collision: collision to be resolved
+        dt: time step difference
+
+    Returns:
+        - list with 2 constranits that can fix the collision, 1 for every AC involved
+    """
 
     # vertex collision has following structure: {'acid1': 0, 'acid2': 1, 'loc': [35], 'timestep': 5}
     # edge collision has following structure: {'acid1': 0, 'acid2': 1, 'loc': [36, 63], 'timestep': 5}
@@ -342,6 +359,7 @@ def get_sum_of_cost(paths):
         rst += len(path) - 1
     return rst
 
+
 def push_node(open_list, node, num_of_generated):
     """
     pushes node to open_list while maintaining ordering of minimum cost
@@ -351,16 +369,23 @@ def push_node(open_list, node, num_of_generated):
         num_of_generated:
 
     Returns:
-
+        number of generated nodes so far, not really relevant right now
     """
     heapq.heappush(open_list, (node['cost'], len(node['collisions']), num_of_generated, node))
     print("Generate node {}".format(num_of_generated))
     num_of_generated += 1
-    #print('open list: ' + str(open_list))
     return num_of_generated
 
 def pop_node(open_list, num_of_expanded):
+    """
+    extracts node with the smallest cost tha hasn't been expanded fully
+    Args:
+        open_list:
+        num_of_expanded: current number of expanded nodes
+
+    Returns:
+        - number of expanded nodes after popping
+    """
     _, _, id, node = heapq.heappop(open_list)
-    #print("Expand node {}".format(id))
     num_of_expanded += 1
     return node, num_of_expanded

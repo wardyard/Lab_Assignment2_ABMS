@@ -208,6 +208,8 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
         - heuristics = [dict] dict with shortest path distance between nodes. Dictionary in a dictionary. Key of first dict is fromnode and key in second dict is tonode.
         - time_start = [float] planning start time.
         - constraints = the set of global constraints
+        - acid, aircraft ID, only relevant for CBS planning
+        - cbs: True if the planning happens via CBS, False otherwise
     RETURNS:
         - success = True/False. True if path is found and False is no path is found
         - path = list of tuples with (loc, timestep) pairs -> example [(37, 1), (101, 2)]. Empty list if success == False.
