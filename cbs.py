@@ -221,7 +221,6 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     num_of_generated = push_node(open_list, q, num_of_generated)
                 else:
                     num_of_deadlocks += 1
-                    raise Exception('13) no path found for AC with extra constraint')
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
 
