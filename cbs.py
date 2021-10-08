@@ -6,7 +6,6 @@ import heapq
 from single_agent_planner import astar
 
 
-
 def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
     """
     Performs CBS planning. Everytime a new AC has spawned, the CBS algorithm plans the paths for all AC in the map.
@@ -32,10 +31,9 @@ def run_CBS(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
             ac.status = "taxiing"
             ac.position = nodes_dict[ac.start]["xy_pos"]
             # ac.from_to = [0, 0]
-            # TODO: expanded nodes and deadlocks returns
-            exp_nodes = cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t)
-            #deadlocks += deadlocks
-            #expanded_nodes += exp_nodes
+            exp_nodes, deadlcks = cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t)
+            deadlocks += deadlcks
+            expanded_nodes += exp_nodes
     stop = time.perf_counter_ns()
     time_delta = stop - start  # in nanosecond
 
@@ -112,7 +110,8 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 # append ACID of this AC to the acids list
                 root['acids'].append(ac.id)
             else:
-                raise BaseException('No solution for CBS root node')
+                num_of_deadlocks += 1
+                raise BaseException('Deadlock CBS independent paths')
 
     print('2) Root node paths: ' + str(root['paths']))
     # determine cost of root node paths
@@ -151,7 +150,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     if acid_path[0][1] != t:
                         raise Exception("Something is wrong with the timing of the path planning")
 
-            return num_of_expanded
+            return num_of_expanded, num_of_deadlocks
 
         # there are collisions, extract 1 of them
         collision = p['collisions'][0]
@@ -221,6 +220,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
                 else:
+                    num_of_deadlocks += 1
                     raise Exception('13) no path found for AC with extra constraint')
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
@@ -234,7 +234,7 @@ def detect_collision(path1, path2, dt):
     - vertex collision has the form [[node], timestep]
     - edge collision has the form [[node1, node2], timestep]
     """
-
+    # TODO: detect artificial collision here when 2 AC are at the departing runway at the same time
     # iterate over longest path to ensure goal collisions are noticed as well
     longest_path = path1 if len(path1) > len(path2) else path2
     for node_time_pair in longest_path:
@@ -246,10 +246,18 @@ def detect_collision(path1, path2, dt):
 
         loc1_t_1 = get_location(path1, timestep + dt)
         loc2_t_1 = get_location(path2, timestep + dt)
+        # check is current path locations are valid (so AC hasn't reached destination)
+        curr_loc_valid = loc1 is not None and loc2 is not None
         # vertex collision
         # loc is None when t > max t in path, meaning the AC has arrived.
-        if loc1 is not None and loc2 is not None and loc1 == loc2:
+        if curr_loc_valid and loc1 == loc2:
             return [[loc1], timestep]
+        # check whether 2 AC will be at departing runway at the same time
+        # the collision format will be the same as an edge constraint, but standard_splitting is modified
+        # to account for this special type of constraint
+        elif curr_loc_valid and (loc1 == 1.0 or loc2 == 1.0) and (loc1 == 2.0 or loc2 == 2.0) and loc1 != loc2:
+            #print('RUNWAY CONSTRAINT DETECT_COLLISION')
+            return [[loc1, loc2], timestep]
         # edge collision
         # TODO: find a pretty way to do this
         elif loc1 is not None and loc2 is not None and loc1_t_1 is not None and loc2_t_1 is not None and loc1 == loc2_t_1 and loc2 == loc1_t_1:
@@ -263,12 +271,11 @@ def get_location(path, t):
     returns None if the AC has reached its goal by timestep t. It will be deleted from the
     map by then
     """
-
     # paths has following structure: [(node1, t1), (node2, t2), (node3, t3), ...],
     # we only want the nodes
     if t < 0:
         return path[0][0]
-    elif t < path[-1][1]:
+    elif t <= path[-1][1]:
         for node_time_pair in path:
             if node_time_pair[1] == t:  # if this node_time_pair is for the correct timestep
                 return node_time_pair[0]  # return node
@@ -337,12 +344,19 @@ def standard_splitting(collision, dt):
 
     # edge constraint
     if len(loc) > 1:
-        constraint1 = {'acid': collision['acid1'], 'loc': [loc[0], loc[1]], 'timestep': timestep + dt}
-        # reverse positions for second constraint
-        constraint2 = {'acid': collision['acid2'], 'loc': [loc[1], loc[0]], 'timestep': timestep + dt}
+        loc1 = loc[0]
+        loc2 = loc[1]
+        # same departure time constraint
+        if (loc1 == 2 or loc2 == 2) and (loc1 == 1 or loc2 == 1 ) and loc1 != loc2:
+            constraint1 = {'acid': collision['acid1'], 'loc': [loc1], 'timestep': timestep}
+            constraint2 = {'acid': collision['acid2'], 'loc': [loc2], 'timestep': timestep}
+        else:
+            constraint1 = {'acid': collision['acid1'], 'loc': [loc[0], loc[1]], 'timestep': timestep + dt}
+            # reverse positions for second constraint
+            constraint2 = {'acid': collision['acid2'], 'loc': [loc[1], loc[0]], 'timestep': timestep + dt}
         constraints.append(constraint1)
         constraints.append(constraint2)
-
+    # TODO: same departure runway constraint
     # vertex constraint
     elif len(collision['loc']) == 1:
         constraint1 = {'acid': collision['acid1'], 'loc': loc, 'timestep': timestep}
@@ -386,6 +400,6 @@ def pop_node(open_list, num_of_expanded):
     Returns:
         - number of expanded nodes after popping
     """
-    _, _, id, node = heapq.heappop(open_list)
+    _, _, _, node = heapq.heappop(open_list)
     num_of_expanded += 1
     return node, num_of_expanded

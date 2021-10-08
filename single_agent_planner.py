@@ -6,6 +6,7 @@ Consider functions in this file as supporting functions.
 import heapq
 import networkx as nx
 
+# TODO: add constraints for AC which depart at the same timestep from the same runway
 def calc_heuristics(graph, nodes_dict):
     """
     Calculates the exact heuristic dict (shortest distance between two nodes) to be used in A* search.
@@ -26,6 +27,7 @@ def calc_heuristics(graph, nodes_dict):
             else:
                 heuristics[nodes_dict[i]["id"]][nodes_dict[j]["id"]] = path_length
     return heuristics
+
 
 def heuristicFinder(graph, start_node, goal_node):
     """
@@ -305,16 +307,20 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
     print("No path found, " + str(len(closed_list)) + " nodes visited")
     return False, [], expanded_nodes  # Failed to find solutions
 
+
 def push_node(open_list, node):
     heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node))
+
 
 def pop_node(open_list):
     _, _, _, curr = heapq.heappop(open_list)
     return curr
 
+
 def compare_nodes(n1, n2):
     """Return true if n1 is better than n2."""
     return n1['g_val'] + n1['h_val'] < n2['g_val'] + n2['h_val']
+
 
 def get_path(goal_node):
     """Construct path if goal node is reached"""

@@ -4,7 +4,6 @@ Implement prioritized planner here
 import time
 
 
-
 def run_prioritized_planner(aircraft_list, nodes_dict, edges_dict, heuristics, constraints, dt, t):
     """
     function gets called when a new AC has spawned, it then computes a path for this AC

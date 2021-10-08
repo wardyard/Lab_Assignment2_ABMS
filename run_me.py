@@ -158,6 +158,7 @@ ratios = []
 throughput = dict()
 computing_times = []
 deadlocks = 0
+expanded_nodes = 0
 
 # will be used as ID for spawning aircraft
 spawned_ac = 0
@@ -224,7 +225,7 @@ while running:
     # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
     # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
     # are located at one of these positions
-
+    '''
     if random.random() < 0.2:
         if random.random() < 0.5:  # departing AC
             # determine at which gate the AC starts
@@ -270,6 +271,7 @@ while running:
         print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
 
     '''
+    '''
     if t == 1:
         ac = Aircraft(1, 'A', 37, 36, t,
                       nodes_dict)  # As an example we will create one aicraft arriving at node 37 with the goal of reaching node 36
@@ -285,16 +287,26 @@ while running:
                        nodes_dict)
         aircraft_lst.append(ac1)
     '''
+    # same departure time testing
+    if t == 1:
+        ac = Aircraft(1, 'D', 43, 1, t, nodes_dict)
+        ac1 = Aircraft(2, 'D', 45, 2, t, nodes_dict)
+        aircraft_lst.append(ac)
+        aircraft_lst.append(ac1)
 
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
-            time_delta, expanded_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
+            time_delta, exp_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
             # computing time performance indicator
             computing_times.append(time_delta)
+            # expanded nodes performance indicator
+            expanded_nodes += exp_nodes
     elif planner == "Prioritized":
-        time_delta, expanded_nodes, deadlcks = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics,
-                                                                       constraints, dt, t)
+        time_delta, exp_nodes, deadlcks = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics,
+                                                                  constraints, dt, t)
+        # expanded nodes performance indicator
+        expanded_nodes += exp_nodes
         if deadlcks > 0:
             aircraft_lst.pop()
             # deadlocks performance indicator
@@ -302,10 +314,13 @@ while running:
         # computing time performance indicator
         computing_times.append(time_delta)
     elif planner == "CBS":
-        time_delta, expanded_nodes, deadlocks = run_CBS(aircraft_lst, nodes_dict, edges_dict,
+        time_delta, exp_nodes, deadlocks = run_CBS(aircraft_lst, nodes_dict, edges_dict,
                                                         heuristics, dt, t)
+        # expanded nodes performance indicator
+        expanded_nodes += exp_nodes
         # computing time performance indicator
         computing_times.append(time_delta)
+        # TODO: deadlocks and remove AC from map and AC list
     # elif planner == -> you may introduce other planners here
     else:
         raise Exception("Planner:", planner, "is not defined.")
