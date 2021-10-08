@@ -92,7 +92,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
             print('1.1) curr_pos: ' + str(curr_pos))
             # no constraints are given to astar for the root node. ac.id is a parameter because it is used
             # to construct the constraint tabel since this has a different format for CBS (see single_agent_planner)
-            success, path, expanded_nodes = astar(nodes_dict, curr_pos, ac.goal, heuristics, [], t, dt, ac.id, True)
+            success, path, expanded_nodes = astar(nodes_dict, curr_pos, ac.goal, heuristics, [], t, dt, ac.id, True, ac)
             # update KPI
             num_of_expanded += expanded_nodes
             if success:
@@ -199,7 +199,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 print('11) aircr.goal: ' + str(aircr.goal))
                 # calculate path with extra constraints
                 success, q_path, expanded_nodes = astar(nodes_dict, curr_pos, aircr.goal, heuristics, q_constraints, t,
-                                                        dt, q_acid, True)
+                                                        dt, q_acid, True, aircr)
                 # update KPI
                 num_of_expanded += expanded_nodes
                 # if a path was found, update the AC instance variables and update Q node

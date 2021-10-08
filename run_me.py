@@ -270,29 +270,18 @@ while running:
             spawned_ac += 1
         print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
 
+
     '''
-    '''
-    if t == 1:
-        ac = Aircraft(1, 'A', 37, 36, t,
-                      nodes_dict)  # As an example we will create one aicraft arriving at node 37 with the goal of reaching node 36
-        ac1 = Aircraft(2, 'D', 36, 2, t,
-                       nodes_dict)  # As an example we will create one aicraft arriving at node 36 with the goal of reaching node 37
-        ac2 = Aircraft(3, 'D', 35, 1, t,
-                       nodes_dict)  # As an example we will create one aicraft arriving at node 36 with the goal of reaching node 37
+    if t == 0.5:
+        ac = Aircraft(1, 'D', 11, 57, t, nodes_dict)
+        ac1 = Aircraft(2, 'A', 38, 75, t, nodes_dict)
         aircraft_lst.append(ac)
         aircraft_lst.append(ac1)
+    if t == 1:
+
+        ac2 = Aircraft(3, 'A', 38, 25, t,
+                       nodes_dict)  # As an example we will create one aicraft arriving at node 36 with the goal of reaching node 37
         aircraft_lst.append(ac2)
-    if t == 2.5:
-        ac1 = Aircraft(4, 'D', 98, 2, t,
-                       nodes_dict)
-        aircraft_lst.append(ac1)
-    '''
-    # same departure time testing
-    if t == 1:
-        ac = Aircraft(1, 'D', 43, 1, t, nodes_dict)
-        ac1 = Aircraft(2, 'D', 45, 2, t, nodes_dict)
-        aircraft_lst.append(ac)
-        aircraft_lst.append(ac1)
 
     # Do planning
     if planner == "Independent":

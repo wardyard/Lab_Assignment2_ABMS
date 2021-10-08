@@ -200,7 +200,7 @@ def is_constrained(curr_node, next_node, next_time, constraint_table):
 
 
 # added to keep the simple agent astar working until we finish this legit one
-def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time, dt, acid, cbs):
+def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time, dt, acid, cbs, ac):
     """
     Single agent A* search. Time start can only be the time that an agent is at a node.
     INPUT:
@@ -212,11 +212,13 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
         - constraints = the set of global constraints
         - acid, aircraft ID, only relevant for CBS planning
         - cbs: True if the planning happens via CBS, False otherwise
+        - ac: the aircraft object for which to plan the trajectory. This parameter is used to forbid 180° turns via retrieval of the heading
     RETURNS:
         - success = True/False. True if path is found and False is no path is found
         - path = list of tuples with (loc, timestep) pairs -> example [(37, 1), (101, 2)]. Empty list if success == False.
         - expanded_nodes = the amount of nodes expanded for reaching the solution
     """
+    # TODO: infinite loop for deadlock situation
     # expanded nodes performance indicator
     expanded_nodes = 0
 
@@ -252,7 +254,11 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             # if the selected neighbor causes the AC to make a 180° move, forbid the move
             # note: is an AC is stationary at a node for a certain amount of timesteps, it cannot
             # return to the node it was at before this one either
-            if len(path) > 1:
+            # TODO: there's a problem here. Path is only the path from the current timestep. So the starting node won't be in it if the AC has already moved
+            # TODO: When the AC is forced to turn back to the spawn position, it can do so because this node is not in the path.
+            # TODO: this can create an infinite loop
+            # TODO: proposed solution: instead of using the path to check 180° turns, use the heading?
+            if len(path) > 1 and not constrained:
                 last_node = path[-1][0]  # equal to 'current position' in the path construction
                 # print('current path: ' + str(path))
                 # print('last node: ' + str(last_node))
@@ -269,6 +275,23 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
                         constrained = True
                 # else:
                   #  print('no different node in previous positions')
+            # 180° constraints for CBS
+            # current heading of the AC
+            ac_heading = ac.heading
+            if len(path) <= 1 and not constrained and curr['loc'] != ac.start:
+                # xy pos of the neighboring node
+                neighbor_xy = nodes_dict[neighbor]["xy_pos"]
+                # xy pos of the current node
+                curr_xy = nodes_dict[curr['loc']]["xy_pos"]
+                # chenge the heading of AC for a fictional move to neighbor
+                ac.get_heading(curr_xy,neighbor_xy)
+                # retreive the updated heading
+                ac_heading_after_move = ac.heading
+                # if the heading differs by 180°, the move should be constrained
+                if abs(ac_heading - ac_heading_after_move) == 180:
+                    constrained = True
+                # restore the original AC heading
+                ac.heading = ac_heading
             if not constrained:
                 child = {'loc': neighbor,
                          'g_val': curr['g_val'] + dt,
