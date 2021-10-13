@@ -219,6 +219,8 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
         - expanded_nodes = the amount of nodes expanded for reaching the solution
     """
     # TODO: infinite loop for deadlock situation
+    # added to solve the infinte expansion of a node where the AC waits
+    max_waiting_time = 50
     # expanded nodes performance indicator
     expanded_nodes = 0
 

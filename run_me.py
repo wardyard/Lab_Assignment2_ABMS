@@ -23,13 +23,13 @@ nodes_file = "nodes.xlsx"  # xlsx file with for each node: id, x_pos, y_pos, typ
 edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (node), length
 
 # Parameters that can be changed:
-simulation_time = 40
+simulation_time = 100
 planner = "CBS"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.5  # set at 0.1 as default
+visualization_speed = 0.1  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -225,7 +225,7 @@ while running:
     # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
     # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
     # are located at one of these positions
-    '''
+    # TODO: look 2 nodes ahead for spawning AT GATES !!
     if random.random() < 0.2:
         if random.random() < 0.5:  # departing AC
             # determine at which gate the AC starts
@@ -248,20 +248,19 @@ while running:
         # boolean to indicate whether the AC will spawn in a nasty situation
         spawn_on_other_ac = False
         for aircr in aircraft_lst:
+            # current node of this AC
+            ac_pos = aircr.from_to[0]
             # check if there's currently an AC at the spawn position
-            path = ac.path_to_goal
-            if path[0][0] == start_node:
+            if aircr.status == "taxiing" and ac_pos == start_node:
                 spawn_on_other_ac = True
                 break
 
             # if not, check if the AC will head straight into the spawned aircraft
             # aka check if it will be located at the preceding node of the spawning node
             # nodes_dict[start_node]["neighbors"] gives node IDs of neighbouring nodes
-            for node_time_pair in path:
-                # if at the current time, the AC is at one of the neighboring nodes of the start node
-                if node_time_pair[1] == t and (node_time_pair[0] in nodes_dict[start_node]["neighbors"]):
-                    spawn_on_other_ac = True
-                    break
+            if ac_pos in nodes_dict[start_node]["neighbors"]:
+                spawn_on_other_ac = True
+                break
 
         # only if it's safe to spawn, add the ac to the list
         if not spawn_on_other_ac:
@@ -282,7 +281,7 @@ while running:
         ac2 = Aircraft(3, 'A', 38, 25, t,
                        nodes_dict)  # As an example we will create one aicraft arriving at node 36 with the goal of reaching node 37
         aircraft_lst.append(ac2)
-
+    '''
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
