@@ -218,9 +218,6 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
         - path = list of tuples with (loc, timestep) pairs -> example [(37, 1), (101, 2)]. Empty list if success == False.
         - expanded_nodes = the amount of nodes expanded for reaching the solution
     """
-    # TODO: infinite loop for deadlock situation
-    # added to solve the infinte expansion of a node where the AC waits
-    max_waiting_time = 50
     # expanded nodes performance indicator
     expanded_nodes = 0
 
@@ -256,10 +253,6 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             # if the selected neighbor causes the AC to make a 180° move, forbid the move
             # note: is an AC is stationary at a node for a certain amount of timesteps, it cannot
             # return to the node it was at before this one either
-            # TODO: there's a problem here. Path is only the path from the current timestep. So the starting node won't be in it if the AC has already moved
-            # TODO: When the AC is forced to turn back to the spawn position, it can do so because this node is not in the path.
-            # TODO: this can create an infinite loop
-            # TODO: proposed solution: instead of using the path to check 180° turns, use the heading?
             if len(path) > 1 and not constrained:
                 last_node = path[-1][0]  # equal to 'current position' in the path construction
                 # print('current path: ' + str(path))
@@ -279,8 +272,10 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
                   #  print('no different node in previous positions')
             # 180° constraints for CBS
             # current heading of the AC
+            # TODO: also let this work for path > 1
             ac_heading = ac.heading
             if len(path) <= 1 and not constrained and curr['loc'] != ac.start:
+            # if not constrained and curr['loc'] != ac.start:
                 # xy pos of the neighboring node
                 neighbor_xy = nodes_dict[neighbor]["xy_pos"]
                 # xy pos of the current node
@@ -316,7 +311,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             # there was a mistake here where the timestep got incremented by 1. Fixed this
             # and the head-on collisions seemed to be fixed
             child = {'loc': child_loc,
-                     'g_val': curr['g_val'] + dt,  # was curr['g_val'] + 1
+                     'g_val': curr['g_val'] + 1,  # was curr['g_val'] + 1
                      'h_val': heuristics[child_loc][goal_node_id],
                      'parent': curr,
                      'timestep': curr['timestep'] + dt}
@@ -334,11 +329,11 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
 
 
 def push_node(open_list, node):
-    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node))
+    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node['timestep'], node))
 
 
 def pop_node(open_list):
-    _, _, _, curr = heapq.heappop(open_list)
+    _, _, _, _, curr = heapq.heappop(open_list)
     return curr
 
 

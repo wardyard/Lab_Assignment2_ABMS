@@ -29,7 +29,7 @@ planner = "CBS"  # choose which planner to use (currently only Independent is im
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.1  # set at 0.1 as default
+visualization_speed = 0.5  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -272,13 +272,13 @@ while running:
 
     '''
     if t == 0.5:
-        ac = Aircraft(1, 'D', 11, 57, t, nodes_dict)
-        ac1 = Aircraft(2, 'A', 38, 75, t, nodes_dict)
+        ac = Aircraft(1, 'A', 20, 35, t, nodes_dict)
+        #ac1 = Aircraft(2, 'A', 38, 75, t, nodes_dict)
         aircraft_lst.append(ac)
-        aircraft_lst.append(ac1)
-    if t == 1:
+        #aircraft_lst.append(ac1)
+    if t == 2.5:
 
-        ac2 = Aircraft(3, 'A', 38, 25, t,
+        ac2 = Aircraft(2, 'D', 35, 1, t,
                        nodes_dict)  # As an example we will create one aicraft arriving at node 36 with the goal of reaching node 37
         aircraft_lst.append(ac2)
     '''
