@@ -4,9 +4,13 @@ individual planner where AC agents plan their routes themselves
 import time
 
 
-def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t):
+def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, observation_size):
     # extract dictionary with nodeID keys and corresponding AC on this node
     radar_dict = radar(aircraft_lst)
+
+    # create the observation area for the AC in the map
+    for ac in aircraft_lst:
+        create_observation_space(ac, radar_dict, nodes_dict, observation_size)
     return None
 
 
@@ -30,3 +34,46 @@ def radar(aircraft_list):
             else:
                 raise BaseException('More than 1 AC at same node in radar dict')
     return radar_dict
+
+
+def create_observation_space(ac, radar_dict, nodes_dict, size):
+    """
+    creates the observation space for the current aicraft. The size determines how far the AC can look.
+    Size = 1: Ac can only look at neighboring nodes
+    Size = 2: Ac can look to nieghboring nodes an their neighbors
+    This function modifies/initializes the observation_space instance variable of the Aircraft class, which was created
+    for this function. Observation_space is a dictionary with node IDs as keys and aircraft on this node as values.
+    If there's no Ac on this ID, None will be added as value
+    Args:
+        ac: AC for which to construct the observation space
+        radar_dict: current AC in the field and their nodes
+        nodes_dict:
+        size: how far the AC can look ahead
+
+    Returns:
+        None
+    """
+    curr_ac_node = ac.from_to[0] if ac.from_to[0] != 0 else ac.start
+
+    # loop over nieghbors of current position node 
+    for neighbor in nodes_dict[curr_ac_node]["neighbors"]:
+        if neighbor in radar_dict:
+            ac.observation_space[neighbor] = radar_dict[neighbor]
+        else:
+            ac.observation_spce[neighbor] = None
+        # If AC can look more than 1 node ahead
+        if size > 1:
+            for neighborr in nodes_dict[neighbor]["neighbors"]:
+                if neighborr in radar_dict:
+                    ac.observation_space[neighborr] = radar_dict[neighborr]
+                else:
+                    # current node will be looped over a few times, but that's no prob I think
+                    ac.observation_space[neighborr] = None
+            if size > 2:
+                for neighborrr in nodes_dict[neighborr]["neighbors"]:
+                    if neighborrr in radar_dict:
+                        ac.observation_space[neighborrr] = radar_dict[neighborrr]
+                    else:
+                        # current node will be looped over a few times, but that's no prob I think
+                        ac.observation_space[neighborrr] = None
+    return None

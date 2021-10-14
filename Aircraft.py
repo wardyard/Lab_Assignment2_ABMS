@@ -41,6 +41,9 @@ class Aircraft(object):
         self.path_length = len(self.visited_nodes)    # total spatial distance of calculated path
         self.time_length_ratio = 0  # ratio between travel time and path length. Indicates waiting time
 
+        # individual planning
+        self.observation_space = dict()
+
     def get_heading(self, xy_start, xy_next):
         """
         Determines heading of an aircraft based on a start and end xy position.

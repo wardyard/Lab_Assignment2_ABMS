@@ -15,6 +15,7 @@ from visualization import map_initialization, map_running
 from Aircraft import Aircraft
 from independent import run_independent_planner
 from prioritized import run_prioritized_planner
+from individual import run_individual_planner
 from cbs import run_CBS
 
 # %% SET SIMULATION PARAMETERS
@@ -188,6 +189,11 @@ deadlock_nodes_rwya = {37: [37, 101], 38: [38, 102]}
 # for the departure runway, list the nodes that automatically result in deadlock
 deadlock_nodes_rwyd = {1: [1, 95], 2: [2, 96]}
 
+# for individual planning: specify the size of the observation area
+# 1 means that it will only see its neighboring nodes
+# 2 means that it will account for neighoring nodes and their neighbors
+ind_obs_size = 2
+
 # =============================================================================
 # 1. While loop and visualization
 # =============================================================================
@@ -309,7 +315,8 @@ while running:
         # computing time performance indicator
         computing_times.append(time_delta)
         # TODO: deadlocks and remove AC from map and AC list
-    # elif planner == -> you may introduce other planners here
+    elif planner == "Individual":
+        run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, ind_obs_size)
     else:
         raise Exception("Planner:", planner, "is not defined.")
 
