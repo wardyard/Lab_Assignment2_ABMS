@@ -1,6 +1,7 @@
 from single_agent_planner import simple_single_agent_astar, astar
+from cbs import detect_collision
 import math
-
+import random
 
 class Aircraft(object):
     """Aircraft class, should be used in the creation of new aircraft."""
@@ -43,6 +44,9 @@ class Aircraft(object):
 
         # individual planning
         self.observation_space = dict()
+        # TODO: find suitable value
+        self.budget = 100
+        self.constraints = []
 
     def get_heading(self, xy_start, xy_next):
         """
@@ -159,7 +163,6 @@ class Aircraft(object):
                 raise Exception("Something is wrong with the timing of the path planning")
         return exp_nodes
 
-
     def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, dt, t):
         """
         Plans path for taxiing aircraft where constraints are constructed on the go in terms of priority
@@ -224,7 +227,6 @@ class Aircraft(object):
                 print('No solution found for ' + str(self.id))
                 return expanded_nodes, constraints, 1
 
-
     def compute_time_distance(self, path):
         """
         computes the performance indicators for travel time, travel distance and their ratio
@@ -248,3 +250,126 @@ class Aircraft(object):
 
         # travel time/travel distance performance indicator
         self.time_length_ratio = round(self.travel_time / float(self.path_length), 5)
+
+    # added for individual planning
+    def scan(self):
+        """
+        scans the observation space and extracts a list of AC objects which the current AC can see
+        Returns: observed_ac, a list containing AC objects in the observation space. Will be empty if there are none
+
+        """
+        observed_ac = []
+        for node_id in self.observation_space:
+            ac_at_node = self.observation_space[node_id]
+            if ac_at_node is not None:
+                observed_ac.append(ac_at_node)
+        return observed_ac
+
+    # added for individual planning
+    def perform_ind_planning(self, observed_ac, t, dt, heuristics):
+        """
+        The main individual planning function. The main loop runs over the AC in observed_ac list. For every AC (let's call it AC2)
+        in this list, do the following:
+        1) extract path of AC2 for the following 2 timesteps. 2 is chosen due to the amount of nodes an AC can look ahead
+        2) detect collisions between currently planned path an AC2 path, a CBS function is used to recycle code. If a
+        situation occurs where either AC or AC2 is at an intermediate node between 2 intersections and the other AC is
+        at the intersection and heading right into a front-end collision, the AC at the intersection node needs to move
+        and no negotiation is needed
+        3) create constraints out of this collision
+        4) let AC and AC2 plan path independently, given the extra constraint and determine the extra cost (length of
+        path) for each newly created path. The extra cost will be expressed as a percentage of the original path length
+        5) AC and AC2 want to bid the same percentage of their budget as the cost for rerouting their paths. So a 30%
+        increase in path length indicates that the agent wants to bid 30% of its remaining budget. Calculate the bids
+        of each of the 2 AC
+        6) highest bid wins if the bids are equal, the AC with highest extra cost wins. The winning AC however only pays
+        the bid of the other agent + 10%, with a max price of its own bid of course. The budget instance variable of
+        winning AC gets updated
+        7) the winning AC is thus able to keep its path, however, the losing AC plans it's path according to a new
+        constraint. This constraint is given to the other aircraft in the observed_ac list to prevent them looking
+        for solutions which would lead them into a collision with this AC
+        Args:
+            observed_ac:
+
+        Returns:
+
+        """
+        for ac2 in observed_ac:
+            # path for next 2 timesteps
+            path2 = ac2.path_to_goal[:2]
+            path = self.path_to_goal[:2]
+            collision = detect_collision(path, path2, dt)
+            if collision is not None:
+                constraints = []
+                # first check whether one of the Ac is at an intersection, heading into the other AC which is at a
+                # node between intersections
+                curr_pos_self = self.from_to[0] if self.from_to[0] != 0 else self.start
+                curr_pos_ac2 = ac2.from_to[0] if ac2.from_to [0] != 0 else ac2.start
+                if len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 4:
+                    # self is located between intersections, AC2 is located at intersection and heading into it
+                    # impose constraints on AC2 such that it HAS to move away from th intersection
+                    constraints.append[
+                        {'spawntime': ac2.spawntime, 'loc': [curr_pos_ac2], 'timestep': t + dt, 'acid': ac2.id}]
+                    constraints.append[
+                        {'spawntime': ac2.spawntime, 'loc': [curr_pos_self], 'timestep': t + dt, 'acid': ac2.id}]
+                elif len(self.nodes_dict[curr_pos_self]["neighbors"]) == 4 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
+                    # ac2 is located between intersections and self is located at intersection and heading into ac2
+                    # impose constraints on self such that self HAS to move away from intersection
+                    constraints.append[
+                        {'spawntime': self.spawntime, 'loc': [curr_pos_ac2], 'timestep': t + dt, 'acid': self.id}]
+                    constraints.append[
+                        {'spawntime': self.spawntime, 'loc': [curr_pos_self], 'timestep': t + dt, 'acid': self.id}]
+                else:
+                    # we have a regular collision. Create constraints
+                    loc = collision['loc']
+                    timestep = collision['timestep']
+                    # edge collision
+                    if len(loc) > 1:
+                        constraints.append(
+                            {'spawntime': self.spawntime, 'loc': [loc[0], loc[1]], 'timestep': timestep + dt, 'acid': self.id})
+                        constraints.append(
+                            {'spawntime': ac2.spawntime, 'loc': [loc[1], loc[0]], 'timestep': timestep + dt, 'acid': ac2.id})
+                    # vertex collision
+                    elif len(loc) == 1:
+                        constraints.append(
+                            {'spawntime': self.spawntime, 'loc': [loc], 'timestep': timestep, 'acid': self.id})
+                        constraints.append(
+                            {'spawntime': ac2.spawntime, 'loc': [loc], 'timestep': timestep, 'acid': ac2.id})
+
+                # now, plan the paths independently for both AC
+                path_self = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, constraints, t, dt, self.acid,
+                                  False, self)
+                path_ac2 = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics, constraints, t, dt, ac2.acid,
+                                 False, ac2)
+                # determine cost for each of the AC involved, calculated as fraction increase w.r.t. old path
+                cost_self = ((len(path_self) - len(path))/len(path) - 1)
+                cost_ac2 = ((len(path_ac2) - len(path2))/len(path2) - 1)
+
+                # calculate corresponding bids
+                bid_self = cost_self * self.budget
+                bid_ac2 = cost_ac2 * ac2.budget
+                # TODO: constraints of losing AC 
+                # if current AC wins negotiation or same bids and self has largest cost
+                if bid_self > bid_ac2 or (bid_self == bid_ac2 and cost_self > cost_ac2):
+                    self.budget = self.budget - 1.1*bid_ac2 if 1.1*bid_ac2 < bid_self else self.budget - bid_self
+                    self.path_to_goal = path_self[1:]
+
+                # if AC2 wins negotioation or same bids and AC2 has largest cost
+                elif bid_self < bid_ac2 or (bid_self == bid_ac2 and cost_self < cost_ac2):
+                    ac2.budget = ac2.budget - 1.1*bid_self if 1.1*bid_self < bid_ac2 else ac2.budget - bid_ac2
+                    ac2.path_to_goal = path_ac2[1:]
+
+                # if everything is equal, determine arbitrary
+                elif bid_self == bid_ac2 and cost_self == cost_ac2:
+                    if random.random() < 0.5:
+                        self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self else self.budget - bid_self
+                        self.path_to_goal = path_self[1:]
+                    else:
+                        ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 else ac2.budget - bid_ac2
+                        ac2.path_to_goal = path_ac2[1:]
+
+                # something went wrong
+                else:
+                    raise BaseException('something wrong with bids and costs')
+
+
+        return None

@@ -4,13 +4,15 @@ individual planner where AC agents plan their routes themselves
 import time
 
 
-def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, observation_size):
+def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, observation_size):
     # extract dictionary with nodeID keys and corresponding AC on this node
     radar_dict = radar(aircraft_lst)
 
     # create the observation area for the AC in the map
     for ac in aircraft_lst:
         create_observation_space(ac, radar_dict, nodes_dict, observation_size)
+        observed_ac = ac.scan()
+        ac.perform_ind_planning(observed_ac, t, dt, heuristics)
     return None
 
 
@@ -55,7 +57,7 @@ def create_observation_space(ac, radar_dict, nodes_dict, size):
     """
     curr_ac_node = ac.from_to[0] if ac.from_to[0] != 0 else ac.start
 
-    # loop over nieghbors of current position node 
+    # loop over nieghbors of current position node
     for neighbor in nodes_dict[curr_ac_node]["neighbors"]:
         if neighbor in radar_dict:
             ac.observation_space[neighbor] = radar_dict[neighbor]
