@@ -231,7 +231,8 @@ while running:
     # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
     # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
     # are located at one of these positions
-    # TODO: look 2 nodes ahead for spawning AT GATES !!
+    # TODO: should we maybe try and spawn more than 1 AC at a single timestep?
+    # TODO: in this case, same arrival time constraints need to be constructed as well to prevent 2 AC spawning at rwy_a
     if random.random() < 0.2:
         if random.random() < 0.5:  # departing AC
             # determine at which gate the AC starts

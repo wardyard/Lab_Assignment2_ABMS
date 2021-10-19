@@ -10,6 +10,7 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
 
     # create the observation area for the AC in the map
     for ac in aircraft_lst:
+        ac.planned_t = False    # planning not performed for current timestep
         create_observation_space(ac, radar_dict, nodes_dict, observation_size)
         observed_ac = ac.scan()
         ac.perform_ind_planning(observed_ac, t, dt, heuristics)

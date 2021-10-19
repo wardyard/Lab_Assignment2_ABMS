@@ -46,7 +46,8 @@ class Aircraft(object):
         self.observation_space = dict()
         # TODO: find suitable value
         self.budget = 100
-        self.constraints = []
+        self.constraints = []   # constraints regarding this AC
+        self.planned_t = False  # AC already has been planned for timestep t
 
     def get_heading(self, xy_start, xy_next):
         """
@@ -204,6 +205,7 @@ class Aircraft(object):
                 # constraints are not agent-specific, but spawn time specific
                 # every agent that spawns after or at the time specified in the constraint, will have
                 # to obey to this constraint
+                # TODO: add constraints for same departure at runway
                 for node_time_pair in path: # path is list of (node_id, timestep) tuples
                     node = node_time_pair[0]    # find node_id
                     timestep = node_time_pair[1]
@@ -219,6 +221,11 @@ class Aircraft(object):
                         # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can be removed
                         # once this aircraft has reached its goal
                         constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep, 'acid': self.id})
+                    # same departure time constraint
+                    # TODO: check this
+                    if node == 2 or node == 1:
+                        constraints.append({'spawntime': self.spawntime, 'loc': [1], 'timestep': timestep, 'acid': self.id})
+                        constraints.append({'spawntime': self.spawntime, 'loc': [2], 'timestep': timestep, 'acid': self.id})
 
                 print('constraints after plan_prioritized: ' + str(constraints))
                 return expanded_nodes, constraints, 0
@@ -307,33 +314,25 @@ class Aircraft(object):
                 if len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 4:
                     # self is located between intersections, AC2 is located at intersection and heading into it
                     # impose constraints on AC2 such that it HAS to move away from th intersection
-                    constraints.append[
-                        {'spawntime': ac2.spawntime, 'loc': [curr_pos_ac2], 'timestep': t + dt, 'acid': ac2.id}]
-                    constraints.append[
-                        {'spawntime': ac2.spawntime, 'loc': [curr_pos_self], 'timestep': t + dt, 'acid': ac2.id}]
+                    constraints.append[{'acid': ac2.id, 'loc': [curr_pos_ac2], 'timestep': t + dt}]
+                    constraints.append[{'acid': ac2.id, 'loc': [curr_pos_self], 'timestep': t + dt}]
                 elif len(self.nodes_dict[curr_pos_self]["neighbors"]) == 4 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
                     # ac2 is located between intersections and self is located at intersection and heading into ac2
                     # impose constraints on self such that self HAS to move away from intersection
-                    constraints.append[
-                        {'spawntime': self.spawntime, 'loc': [curr_pos_ac2], 'timestep': t + dt, 'acid': self.id}]
-                    constraints.append[
-                        {'spawntime': self.spawntime, 'loc': [curr_pos_self], 'timestep': t + dt, 'acid': self.id}]
+                    constraints.append[{'acid': self.id, 'loc': [curr_pos_ac2], 'timestep': t + dt}]
+                    constraints.append[{'acid': self.id, 'loc': [curr_pos_self], 'timestep': t + dt}]
                 else:
                     # we have a regular collision. Create constraints
                     loc = collision['loc']
                     timestep = collision['timestep']
                     # edge collision
                     if len(loc) > 1:
-                        constraints.append(
-                            {'spawntime': self.spawntime, 'loc': [loc[0], loc[1]], 'timestep': timestep + dt, 'acid': self.id})
-                        constraints.append(
-                            {'spawntime': ac2.spawntime, 'loc': [loc[1], loc[0]], 'timestep': timestep + dt, 'acid': ac2.id})
+                        constraints.append({'acid': self.id, 'loc': [loc[0], loc[1]], 'timestep': timestep + dt})
+                        constraints.append({'acid': ac2.id, 'loc': [loc[1], loc[0]], 'timestep': timestep + dt})
                     # vertex collision
                     elif len(loc) == 1:
-                        constraints.append(
-                            {'spawntime': self.spawntime, 'loc': [loc], 'timestep': timestep, 'acid': self.id})
-                        constraints.append(
-                            {'spawntime': ac2.spawntime, 'loc': [loc], 'timestep': timestep, 'acid': ac2.id})
+                        constraints.append({'acid': self.id, 'loc': [loc], 'timestep': timestep})
+                        constraints.append({'acid': ac2.id, 'loc': [loc], 'timestep': timestep})
 
                 # now, plan the paths independently for both AC
                 path_self = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, constraints, t, dt, self.acid,
@@ -347,29 +346,48 @@ class Aircraft(object):
                 # calculate corresponding bids
                 bid_self = cost_self * self.budget
                 bid_ac2 = cost_ac2 * ac2.budget
-                # TODO: constraints of losing AC 
+
+                # next position in the path of the losing aircraft
+                next_pos_losing = None
+
                 # if current AC wins negotiation or same bids and self has largest cost
                 if bid_self > bid_ac2 or (bid_self == bid_ac2 and cost_self > cost_ac2):
                     self.budget = self.budget - 1.1*bid_ac2 if 1.1*bid_ac2 < bid_self else self.budget - bid_self
-                    self.path_to_goal = path_self[1:]
-
-                # if AC2 wins negotioation or same bids and AC2 has largest cost
+                    # if ac1 wins biddding war, ac2 has to adjust path
+                    ac2.path_to_goal = path_ac2[1:]
+                    next_pos_losing = path_ac2[1]
+                    # indicate that the planning of AC2 is done for this timestep
+                    ac2.planned_t = True
+                # if AC2 wins negotiation or same bids and AC2 has largest cost
                 elif bid_self < bid_ac2 or (bid_self == bid_ac2 and cost_self < cost_ac2):
                     ac2.budget = ac2.budget - 1.1*bid_self if 1.1*bid_self < bid_ac2 else ac2.budget - bid_ac2
-                    ac2.path_to_goal = path_ac2[1:]
+                    # if ac2 has winning bid, ac1 needs to adjust path
+                    self.path_to_goal = path_self[1:]
+                    next_pos_losing = path_self[1]
+                    # indicate that the planning of self is done for this timestep
+                    self.planned_t = True
 
                 # if everything is equal, determine arbitrary
                 elif bid_self == bid_ac2 and cost_self == cost_ac2:
                     if random.random() < 0.5:
                         self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self else self.budget - bid_self
-                        self.path_to_goal = path_self[1:]
-                    else:
-                        ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 else ac2.budget - bid_ac2
                         ac2.path_to_goal = path_ac2[1:]
+                        next_pos_losing = path_ac2[1]
+                        # indicate that the planning of AC2 is done for this timestep
+                        ac2.planned_t = True
 
-                # something went wrong
                 else:
-                    raise BaseException('something wrong with bids and costs')
+                        ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 else ac2.budget - bid_ac2
+                        self.path_to_goal = path_self[1:]
+                        next_pos_losing = path_self[1]
+                        # indicate that the planning of self is done for this timestep
+                        self.planned_t = True
 
+                # TODO: constraints of losing AC
+                # the other AC in the observation space cannot be at the losing aircraft position for the next timestep
+                # since its path is already planned
+                for ac in observed_ac:
+                    if ac.id != self.id and not ac.planned_t:
+                        ac.constraints.append({{'acid': ac.id, 'loc': [next_pos_losing], 'timestep': timestep + dt}})
 
         return None
