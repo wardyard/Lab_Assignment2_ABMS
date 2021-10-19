@@ -7,10 +7,12 @@ import time
 def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, observation_size):
     # extract dictionary with nodeID keys and corresponding AC on this node
     radar_dict = radar(aircraft_lst)
-
-    # create the observation area for the AC in the map
+    print('----------------------------------------------------------------')
+    print('1) individual planner called')
     for ac in aircraft_lst:
-        ac.planned_t = False    # planning not performed for current timestep
+        if ac.spawntime == t:
+            ac.status = "taxiing"
+            ac.position = nodes_dict[ac.start]["xy_pos"]
         create_observation_space(ac, radar_dict, nodes_dict, observation_size)
         observed_ac = ac.scan()
         ac.perform_ind_planning(observed_ac, t, dt, heuristics)
@@ -27,6 +29,7 @@ def radar(aircraft_list):
     Returns:
         dictionary in the form of {node_ID: AC, node_ID2: AC2}
     """
+    print('3) radar called')
     radar_dict = dict()
     for ac in aircraft_list:
         if ac.status == "taxiing":
@@ -56,6 +59,7 @@ def create_observation_space(ac, radar_dict, nodes_dict, size):
     Returns:
         None
     """
+    print('2) create_observation_space called')
     curr_ac_node = ac.from_to[0] if ac.from_to[0] != 0 else ac.start
 
     # loop over nieghbors of current position node
@@ -63,7 +67,7 @@ def create_observation_space(ac, radar_dict, nodes_dict, size):
         if neighbor in radar_dict:
             ac.observation_space[neighbor] = radar_dict[neighbor]
         else:
-            ac.observation_spce[neighbor] = None
+            ac.observation_space[neighbor] = None
         # If AC can look more than 1 node ahead
         if size > 1:
             for neighborr in nodes_dict[neighbor]["neighbors"]:
