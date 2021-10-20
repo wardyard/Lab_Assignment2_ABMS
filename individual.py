@@ -20,7 +20,7 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
         observed_ac = ac.scan()
         exp_nodes, deadlcks = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
         deadlocks += deadlcks
-        expanded_nodes +=  exp_nodes
+        expanded_nodes += exp_nodes
 
     stop = time.perf_counter_ns()
     # computing time performance indicator

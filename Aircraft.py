@@ -37,6 +37,7 @@ class Aircraft(object):
         self.position = (0, 0)  # xy position on map
 
         # performance indicators
+        self.current_path = []      # added to ensure compute_time_distance works for CBS and individual as well
         self.travel_time = len(self.path_to_goal)    # total travel time
         self.visited_nodes = []     # different nodes visited by A/C. To determine path_length
         self.path_length = len(self.visited_nodes)    # total spatial distance of calculated path
@@ -150,6 +151,7 @@ class Aircraft(object):
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
                 print("Path AC", self.id, ":", path)
+                self.current_path = path
                 # determine length and time of travelled path + their ratio
                 self.compute_time_distance(path)
                 print("travel time AC", self.id, ":", self.travel_time)
@@ -197,6 +199,7 @@ class Aircraft(object):
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
                 print("Path AC", self.id, ":", path)
+                self.current_path = path
                 # determine length and time of travelled path + their ratio
                 self.compute_time_distance(path)
                 # print("travel time AC", self.id, ":", self.travel_time)
@@ -235,7 +238,7 @@ class Aircraft(object):
                 print('No solution found for ' + str(self.id))
                 return expanded_nodes, constraints, 1
 
-    def compute_time_distance(self, path):
+    def compute_time_distance(self):
         # TODO: compute_time_distance is only working for prioritzed and independent planning since the paths are only
         # TODO: calculated once for each AC. Fix this so that we can obtain these performance indicators even if the
         # TODO: ac path is replanned at every timestep
@@ -246,18 +249,18 @@ class Aircraft(object):
         """
         # travel time performance indicator
         start_time = self.spawntime
-        arrival_time = path[-1][1]
+        arrival_time = self.current_path[-1][1]
         self.travel_time = float(arrival_time - start_time)
 
         # travel distance performance indicator
         # check whether the aircraft waits at a certain node. If not, add this node to the list of different
         # visited nodes
-        for position in path:
+        for position in self.current_path:
             node = position[0]
             if not node in self.visited_nodes:
                 self.visited_nodes.append(node)
         # calculate travelled distance
-        self.path_length = len(self.visited_nodes)
+        self.path_length = len(self.current_path)
 
         # travel time/travel distance performance indicator
         self.time_length_ratio = round(self.travel_time / float(self.path_length), 5)
@@ -311,7 +314,7 @@ class Aircraft(object):
 
         # if this AC was already treated and it lost to another AC
         if self.planned_t:
-            return None
+            return 0, 0
         # if the AC doesn't have a path yet, calculate it independently
         curr_pos_self = self.from_to[0] if self.from_to[0] != 0 else self.start
         if len(self.path_to_goal) == 0:
@@ -322,6 +325,9 @@ class Aircraft(object):
                 self.from_to = [path[0][0], path[1][0]]
                 # performance indicator
                 expanded_nodes += exp_nodes
+                # update current path, used for travelling time and distance performance indicator
+                self.current_path = path.copy()
+                self.compute_time_distance()
             else:
                 # performance indictaor
                 deadlocks += 1
@@ -408,51 +414,86 @@ class Aircraft(object):
                     # calculate corresponding bids
                     bid_self = cost_self * self.budget
                     bid_ac2 = cost_ac2 * ac2.budget
-
+                    # TODO: this part has a lot of duplicated code, fix this
                     # next position in the path of the losing aircraft
                     next_pos_losing = None
-                    # TODO: planned_t doesn't get updated correctly somehow
                     # if current AC wins negotiation or same bids and self has largest cost
                     if bid_self > bid_ac2 or (bid_self == bid_ac2 and cost_self > cost_ac2):
                         self.budget = self.budget - 1.1*bid_ac2 if 1.1*bid_ac2 < bid_self else self.budget - bid_self
-                        # if ac1 wins biddding war, ac2 has to adjust path
-                        ac2.path_to_goal = path_ac2[1:]
-                        next_pos_losing = path_ac2[1][0]
                         # indicate that the planning of AC2 is done for this timestep
                         ac2.planned_t = True
-                        ac2.from_to = [path_ac2[0][0], next_pos_losing]
+
                     # if AC2 wins negotiation or same bids and AC2 has largest cost
                     elif bid_self < bid_ac2 or (bid_self == bid_ac2 and cost_self < cost_ac2):
                         ac2.budget = ac2.budget - 1.1*bid_self if 1.1*bid_self < bid_ac2 else ac2.budget - bid_ac2
-                        # if ac2 has winning bid, ac1 needs to adjust path
-                        self.path_to_goal = path_self[1:]
-                        next_pos_losing = path_self[1][0]
                         # indicate that the planning of self is done for this timestep
                         self.planned_t = True
-                        self.from_to = [path_self[0][0], next_pos_losing]
 
                     # if everything is equal, determine arbitrary
                     elif bid_self == bid_ac2 and cost_self == cost_ac2:
                         if random.random() < 0.5:
-                            self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self else self.budget - bid_self
-                            ac2.path_to_goal = path_ac2[1:]
-                            next_pos_losing = path_ac2[1][0]
+                            self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
+                                else self.budget - bid_self
                             # indicate that the planning of AC2 is done for this timestep
                             ac2.planned_t = True
-                            ac2.from_to = [path_ac2[0][0], next_pos_losing]
 
                         else:
-                            ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 else ac2.budget - bid_ac2
-                            self.path_to_goal = path_self[1:]
-                            next_pos_losing = path_self[1][0]
+                            ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 \
+                                else ac2.budget - bid_ac2
                             # indicate that the planning of self is done for this timestep
                             self.planned_t = True
-                            self.from_to = [path_self[0][0], next_pos_losing]
+
+                    if self.planned_t:
+                        # if ac2 wins biddding war, self has to adjust path
+                        self.path_to_goal = path_self[1:]
+                        next_pos_losing = path_self[1][0]
+                        self.from_to = [path_self[0][0], next_pos_losing]
+                        # update the current path of the AC. Used for determining performance indicators
+                        curr_path = self.current_path
+                        # if AC already has a path planned
+                        if len(curr_path) > 0:
+                            # find index in current_path that corresponds to this timestep. Us e filter with lambda
+                            # expression to find the tuple corresponding to the current timestep. Then find the index of
+                            # this tuple in the current_path
+                            index_curr_timestep = curr_path.index(
+                                list(filter(lambda node_t_pair: node_t_pair[1] == t in node_t_pair, curr_path))[0])
+                            # now change the current_path of the AC from this step onwards into the newly calculated path
+                            curr_path[index_curr_timestep:] = path_self
+                            self.current_path = curr_path.copy()
+                        else:
+                            self.current_path = path_self.copy()
+                        # compute travelling time and distance performance indiactors
+                        self.compute_time_distance()
+
+                    elif ac2.planned_t:
+                        # if self wins biddding war, ac2 has to adjust path
+                        ac2.path_to_goal = path_ac2[1:]
+                        next_pos_losing = path_ac2[1][0]
+                        ac2.from_to = [path_ac2[0][0], next_pos_losing]
+                        # update the current path of the AC. Used for determining performance indicators
+                        curr_path = ac2.current_path
+                        # if AC already has a path planned
+                        if len(curr_path) > 0:
+                            # find index in current_path that corresponds to this timestep. Us e filter with lambda
+                            # expression to find the tuple corresponding to the current timestep. Then find the index of
+                            # this tuple in the current_path
+                            index_curr_timestep = curr_path.index(
+                                list(filter(lambda node_t_pair: node_t_pair[1] == t in node_t_pair, curr_path))[0])
+                            # now change the current_path of the AC from this step onwards into the newly calculated path
+                            curr_path[index_curr_timestep:] = path_ac2
+                            ac2.current_path = curr_path.copy()
+                        else:
+                            ac2.current_path = path_ac2.copy()
+                        # compute travelling time and distance performance indicators
+                        ac2.compute_time_distance()
+
+                    else:
+                        raise BaseException('no AC was planned')
+
 
                     # the other AC in the observation space cannot be at the losing aircraft position for the next timestep
                     # since its path is already planned
                     for ac in observed_ac:
                         if not ac.planned_t:
                             ac.constraints.append({'acid': ac.id, 'loc': [next_pos_losing], 'timestep': t + dt})
-
         return expanded_nodes, deadlocks
