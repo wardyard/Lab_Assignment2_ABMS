@@ -272,7 +272,6 @@ class Aircraft(object):
         Returns: observed_ac, a list containing AC objects in the observation space. Will be empty if there are none
 
         """
-        print('4) scan called')
         observed_ac = []
         for node_id in self.observation_space:
             ac_at_node = self.observation_space[node_id]
@@ -333,7 +332,6 @@ class Aircraft(object):
                 deadlocks += 1
                 print('no base path found for ac1')
 
-        print('5) perform ind planning called')
         for ac2 in observed_ac:
             if ac2.id != self.id:
                 curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
@@ -357,21 +355,35 @@ class Aircraft(object):
                 collision = detect_collision(path, path2, dt)
                 if collision is not None and not ac2.planned_t:
                     constraints = []
+                    # indicates situation with right of way
+                    right_of_way = False
                     # first check whether one of the Ac is at an intersection, heading into the other AC which is at a
-                    # node between intersections
-                    curr_pos_ac2 = ac2.from_to[0] if ac2.from_to [0] != 0 else ac2.start
+                    # node between intersections. This is a right of way situation, where the AC at the intersection
+                    # HAS to move. No bidding is done in this case
+                    # curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
+                    # TODO: it wil still start a bidding war if this situation occurs
                     if len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) > 2:
                         # self is located between intersections, AC2 is located at intersection and heading into it
                         # impose constraints on AC2 such that it HAS to move away from th intersection
                         constraints.append({'acid': ac2.id, 'loc': [curr_pos_ac2], 'timestep': t + dt})
                         constraints.append({'acid': ac2.id, 'loc': [curr_pos_self], 'timestep': t + dt})
+                        # indicate that this is a right of way situation
+                        right_of_way = True
+                        # AC2 has to move, so we can consider it planned for this timestep
+                        ac2.planned_t = True
                     elif len(self.nodes_dict[curr_pos_self]["neighbors"]) > 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
                         # ac2 is located between intersections and self is located at intersection and heading into ac2
                         # impose constraints on self such that self HAS to move away from intersection
                         constraints.append({'acid': self.id, 'loc': [curr_pos_ac2], 'timestep': t + dt})
                         constraints.append({'acid': self.id, 'loc': [curr_pos_self], 'timestep': t + dt})
+                        # indicate that this is a right of way situation
+                        right_of_way = True
+                        # self has to move, so we can consider it planned for this timestep
+                        self.planned_t = True
+
+                    # if no right of way situation occurred
                     else:
-                        # we have a regular collision. Create constraints
+                        # we may have a regular collision. Create constraints
                         loc = collision[0]
                         timestep = collision[1]
                         # edge collision
@@ -383,7 +395,7 @@ class Aircraft(object):
                             constraints.append({'acid': self.id, 'loc': loc, 'timestep': timestep})
                             constraints.append({'acid': ac2.id, 'loc': loc, 'timestep': timestep})
 
-                    # now, plan the paths independently for both AC
+                    # now, plan the paths independently for both AC with the newly added constraints
                     success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, constraints + self.constraints,
                                       t, dt, self.id, True, self)
                     # TODO: figure out deadlock situations. Should program return immediately? Should it continue with a high cost?? Should other AC automatically lose?
@@ -407,41 +419,43 @@ class Aircraft(object):
                         # performance indicator
                         expanded_nodes += exp_nodes
 
-                    # determine cost for each of the AC involved, calculated as fraction increase w.r.t. old path
-                    cost_self = 1 - ((len(path_self) - len(self.path_to_goal))/len(self.path_to_goal))
-                    cost_ac2 = 1 - ((len(path_ac2) - len(ac2.path_to_goal))/len(ac2.path_to_goal))
+                    # bidding only happens if we're not in a right of way situation
+                    if not right_of_way:
+                        # determine cost for each of the AC involved, calculated as fraction increase w.r.t. old path
+                        cost_self = 1 - ((len(path_self) - len(self.path_to_goal))/len(self.path_to_goal))
+                        cost_ac2 = 1 - ((len(path_ac2) - len(ac2.path_to_goal))/len(ac2.path_to_goal))
 
-                    # calculate corresponding bids
-                    bid_self = cost_self * self.budget
-                    bid_ac2 = cost_ac2 * ac2.budget
-                    # TODO: this part has a lot of duplicated code, fix this
-                    # next position in the path of the losing aircraft
-                    next_pos_losing = None
-                    # if current AC wins negotiation or same bids and self has largest cost
-                    if bid_self > bid_ac2 or (bid_self == bid_ac2 and cost_self > cost_ac2):
-                        self.budget = self.budget - 1.1*bid_ac2 if 1.1*bid_ac2 < bid_self else self.budget - bid_self
-                        # indicate that the planning of AC2 is done for this timestep
-                        ac2.planned_t = True
-
-                    # if AC2 wins negotiation or same bids and AC2 has largest cost
-                    elif bid_self < bid_ac2 or (bid_self == bid_ac2 and cost_self < cost_ac2):
-                        ac2.budget = ac2.budget - 1.1*bid_self if 1.1*bid_self < bid_ac2 else ac2.budget - bid_ac2
-                        # indicate that the planning of self is done for this timestep
-                        self.planned_t = True
-
-                    # if everything is equal, determine arbitrary
-                    elif bid_self == bid_ac2 and cost_self == cost_ac2:
-                        if random.random() < 0.5:
-                            self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
-                                else self.budget - bid_self
+                        # calculate corresponding bids
+                        bid_self = cost_self * self.budget
+                        bid_ac2 = cost_ac2 * ac2.budget
+                        # TODO: this part has a lot of duplicated code, fix this
+                        # next position in the path of the losing aircraft
+                        next_pos_losing = None
+                        # if current AC wins negotiation or same bids and self has largest cost
+                        if bid_self > bid_ac2 or (bid_self == bid_ac2 and cost_self > cost_ac2):
+                            self.budget = self.budget - 1.1*bid_ac2 if 1.1*bid_ac2 < bid_self else self.budget - bid_self
                             # indicate that the planning of AC2 is done for this timestep
                             ac2.planned_t = True
 
-                        else:
-                            ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 \
-                                else ac2.budget - bid_ac2
+                        # if AC2 wins negotiation or same bids and AC2 has largest cost
+                        elif bid_self < bid_ac2 or (bid_self == bid_ac2 and cost_self < cost_ac2):
+                            ac2.budget = ac2.budget - 1.1*bid_self if 1.1*bid_self < bid_ac2 else ac2.budget - bid_ac2
                             # indicate that the planning of self is done for this timestep
                             self.planned_t = True
+
+                        # if everything is equal, determine arbitrary
+                        elif bid_self == bid_ac2 and cost_self == cost_ac2:
+                            if random.random() < 0.5:
+                                self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
+                                    else self.budget - bid_self
+                                # indicate that the planning of AC2 is done for this timestep
+                                ac2.planned_t = True
+
+                            else:
+                                ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 \
+                                    else ac2.budget - bid_ac2
+                                # indicate that the planning of self is done for this timestep
+                                self.planned_t = True
 
                     if self.planned_t:
                         # if ac2 wins biddding war, self has to adjust path

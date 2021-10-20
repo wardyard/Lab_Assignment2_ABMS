@@ -10,8 +10,6 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
     start = time.perf_counter_ns()
     # extract dictionary with nodeID keys and corresponding AC on this node
     radar_dict = radar(aircraft_lst)
-    print('----------------------------------------------------------------')
-    print('1) individual planner called')
     for ac in aircraft_lst:
         if ac.spawntime == t:
             ac.status = "taxiing"
@@ -38,7 +36,6 @@ def radar(aircraft_list):
     Returns:
         dictionary in the form of {node_ID: AC, node_ID2: AC2}
     """
-    print('3) radar called')
     radar_dict = dict()
     for ac in aircraft_list:
         if ac.status == "taxiing":
@@ -68,7 +65,6 @@ def create_observation_space(ac, radar_dict, nodes_dict, size):
     Returns:
         None
     """
-    print('2) create_observation_space called')
     curr_ac_node = ac.from_to[0] if ac.from_to[0] != 0 else ac.start
 
     # loop over nieghbors of current position node

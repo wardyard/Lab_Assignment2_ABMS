@@ -30,7 +30,7 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.5  # set at 0.1 as default
+visualization_speed = 1  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -233,7 +233,7 @@ while running:
     # are located at one of these positions
     # TODO: should we maybe try and spawn more than 1 AC at a single timestep?
     # TODO: in this case, same arrival time constraints need to be constructed as well to prevent 2 AC spawning at rwy_a
-    if random.random() < 0.2:
+    if random.random() < 0.35:
         if random.random() < 0.5:  # departing AC
             # determine at which gate the AC starts
             start_node_index = random.randint(0, len(gates_ids) - 1)
