@@ -239,9 +239,6 @@ class Aircraft(object):
                 return expanded_nodes, constraints, 1
 
     def compute_time_distance(self):
-        # TODO: compute_time_distance is only working for prioritzed and independent planning since the paths are only
-        # TODO: calculated once for each AC. Fix this so that we can obtain these performance indicators even if the
-        # TODO: ac path is replanned at every timestep
         """
         computes the performance indicators for travel time, travel distance and their ratio
         This function is called when the A/C already has a planned path. It then updates instance
@@ -311,9 +308,12 @@ class Aircraft(object):
         expanded_nodes = 0
         deadlocks = 0
 
+        # if there's an aircraft in a deadlock position, it will be added to this list
+        deadlock_ac = []
+
         # if this AC was already treated and it lost to another AC
         if self.planned_t:
-            return 0, 0
+            return 0, 0, deadlock_ac
         # if the AC doesn't have a path yet, calculate it independently
         curr_pos_self = self.from_to[0] if self.from_to[0] != 0 else self.start
         if len(self.path_to_goal) == 0:
@@ -396,31 +396,40 @@ class Aircraft(object):
                             constraints.append({'acid': ac2.id, 'loc': loc, 'timestep': timestep})
 
                     # now, plan the paths independently for both AC with the newly added constraints
-                    success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, constraints + self.constraints,
-                                      t, dt, self.id, True, self)
+                    success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics,
+                                                          constraints + self.constraints, t, dt, self.id, True, self)
                     # TODO: figure out deadlock situations. Should program return immediately? Should it continue with a high cost?? Should other AC automatically lose?
                     if not success:
+                        # if self is in a deadlock, the function should immediately return. It cannot plan any further
+
                         # performance indicator
                         deadlocks += 1
-                        # TODO: this should be changed maybe to some return statement
-                        raise BaseException('no path found for ac1')
+                        deadlock_ac.append(self)
+                        print('!!! DEADLOCK FOR SELF !!!')
+                        return False, deadlocks, deadlock_ac
                     else:
                         # performance indicator
                         expanded_nodes += exp_nodes
 
-                    success, path_ac2, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics, constraints + ac2.constraints, t,
-                                     dt, ac2.id, True, ac2)
+                    success, path_ac2, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics,
+                                                         constraints + ac2.constraints, t, dt, ac2.id, True, ac2)
                     if not success:
+                        # if ac2 is in a deadlock, the function should not immediately return because self can still
+                        # plan with the other aircraft in its observation space. However, AC2 will have to be removed
+                        # from the aircraft_lst, that's why it's added to deadlock_ac. If AC2 is in a deadlock, we
+                        # just use path_self for self path instead of path. This may be changed later on.
                         # performance indicator
                         deadlocks += 1
-                        # TODO: this should be changed maybe to some return statement
-                        raise BaseException('no path found for ac2')
+                        # we state that self should be planned if AC2 is in a deadlock
+                        self.planned_t = True
+                        deadlock_ac.append(ac2)
+                        print('!!! DEADLOCK FOR AC2 !!!')
                     else:
                         # performance indicator
                         expanded_nodes += exp_nodes
 
                     # bidding only happens if we're not in a right of way situation
-                    if not right_of_way:
+                    if not right_of_way and deadlocks == 0:
                         # determine cost for each of the AC involved, calculated as fraction increase w.r.t. old path
                         cost_self = 1 - ((len(path_self) - len(self.path_to_goal))/len(self.path_to_goal))
                         cost_ac2 = 1 - ((len(path_ac2) - len(ac2.path_to_goal))/len(ac2.path_to_goal))
@@ -457,6 +466,7 @@ class Aircraft(object):
                                 # indicate that the planning of self is done for this timestep
                                 self.planned_t = True
 
+                    # check who won the bidding war, or who has to give priority
                     if self.planned_t:
                         # if ac2 wins biddding war, self has to adjust path
                         self.path_to_goal = path_self[1:]
@@ -504,10 +514,10 @@ class Aircraft(object):
                     else:
                         raise BaseException('no AC was planned')
 
-
-                    # the other AC in the observation space cannot be at the losing aircraft position for the next timestep
-                    # since its path is already planned
+                    # the other AC in the observation space cannot be at the losing aircraft position for the next
+                    # timestep since its path is already planned
                     for ac in observed_ac:
                         if not ac.planned_t:
                             ac.constraints.append({'acid': ac.id, 'loc': [next_pos_losing], 'timestep': t + dt})
-        return expanded_nodes, deadlocks
+        return expanded_nodes, deadlocks, deadlock_ac
+

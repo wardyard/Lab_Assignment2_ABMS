@@ -201,6 +201,7 @@ def is_constrained(curr_node, next_node, next_time, constraint_table):
 
 # added to keep the simple agent astar working until we finish this legit one
 def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time, dt, acid, cbs, ac):
+    # TODO: impose a waiting time limit to recognise deadlocks
     """
     Single agent A* search. Time start can only be the time that an agent is at a node.
     INPUT:
@@ -218,6 +219,8 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
         - path = list of tuples with (loc, timestep) pairs -> example [(37, 1), (101, 2)]. Empty list if success == False.
         - expanded_nodes = the amount of nodes expanded for reaching the solution
     """
+    # max f_value limit for a node, if the f_value goes above this limit, we can safely say we're in a deadlock
+    max_f_value = 100
     # expanded nodes performance indicator
     expanded_nodes = 0
 
@@ -239,7 +242,12 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
     push_node(open_list, root)
     closed_list[(root['loc'], root['timestep'])] = root
     while len(open_list) > 0:
+        # pop node with smallest f_value
         curr = pop_node(open_list)
+        # check if the cost of the current node is too high. This denotes a deadlock situation
+        if curr['g_val'] + curr['h_val'] > max_f_value:
+            # didn't find a solution, deadlock
+            break
         # one extra expanded node
         expanded_nodes += 1
         # this path is not necessarily complete, but it will be used to forbid 180° turns
