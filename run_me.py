@@ -25,7 +25,7 @@ edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (nod
 
 # Parameters that can be changed:
 simulation_time = 80
-planner = "CBS"  # choose which planner to use (currently only Independent is implemented)
+planner = "Independent"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
@@ -290,12 +290,11 @@ while running:
     '''
     # Do planning
     if planner == "Independent":
-        if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
-            time_delta, exp_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
-            # computing time performance indicator
-            computing_times.append(time_delta)
-            # expanded nodes performance indicator
-            expanded_nodes += exp_nodes
+        time_delta, exp_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
+        # computing time performance indicator
+        computing_times.append(time_delta)
+        # expanded nodes performance indicator
+        expanded_nodes += exp_nodes
     elif planner == "Prioritized":
         time_delta, exp_nodes, deadlcks = run_prioritized_planner(aircraft_lst, nodes_dict, edges_dict, heuristics,
                                                                   constraints, dt, t)

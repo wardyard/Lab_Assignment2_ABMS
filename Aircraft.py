@@ -153,7 +153,7 @@ class Aircraft(object):
                 print("Path AC", self.id, ":", path)
                 self.current_path = path
                 # determine length and time of travelled path + their ratio
-                self.compute_time_distance(path)
+                self.compute_time_distance()
                 print("travel time AC", self.id, ":", self.travel_time)
                 print("travel distance AC", self.id, ":", self.path_length)
                 print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
