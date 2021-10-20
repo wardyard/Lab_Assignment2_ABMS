@@ -24,8 +24,8 @@ nodes_file = "nodes.xlsx"  # xlsx file with for each node: id, x_pos, y_pos, typ
 edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (node), length
 
 # Parameters that can be changed:
-simulation_time = 40
-planner = "Individual"  # choose which planner to use (currently only Independent is implemented)
+simulation_time = 80
+planner = "CBS"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
@@ -309,13 +309,12 @@ while running:
         computing_times.append(time_delta)
 
     elif planner == "CBS":
-        time_delta, exp_nodes, deadlocks = run_CBS(aircraft_lst, nodes_dict, edges_dict,
+        time_delta, exp_nodes, deadlcks = run_CBS(aircraft_lst, nodes_dict, edges_dict,
                                                         heuristics, dt, t)
         # expanded nodes performance indicator
         expanded_nodes += exp_nodes
         # computing time performance indicator
         computing_times.append(time_delta)
-        # TODO: remove AC from map and AC list
         # deadlocks performance indicator
         deadlocks += deadlcks
 

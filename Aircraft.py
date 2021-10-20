@@ -190,7 +190,8 @@ class Aircraft(object):
             # the parameter 0 denotes that the aircraft Id is not important here. It won't be used in the A star algorithm.
             # The False parameter indicated that the A star algorithm has to construct the constraint table using
             # the prioritized constraint format
-            success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t, dt, 0, False)
+            success, path, expanded_nodes = astar(nodes_dict, start_node, goal_node, heuristics, constraints, t, dt, 0,
+                                                  False, self)
 
             if success:
                 if path[0][1] != t:
@@ -198,10 +199,9 @@ class Aircraft(object):
                 self.path_to_goal = path[1:]
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
-                print("Path AC", self.id, ":", path)
-                self.current_path = path
+                self.current_path = path.copy()
                 # determine length and time of travelled path + their ratio
-                self.compute_time_distance(path)
+                self.compute_time_distance()
                 # print("travel time AC", self.id, ":", self.travel_time)
                 # print("travel distance AC", self.id, ":", self.path_length)
                 # print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
@@ -231,12 +231,11 @@ class Aircraft(object):
                         constraints.append({'spawntime': self.spawntime, 'loc': [1], 'timestep': timestep, 'acid': self.id})
                         constraints.append({'spawntime': self.spawntime, 'loc': [2], 'timestep': timestep, 'acid': self.id})
 
-                print('constraints after plan_prioritized: ' + str(constraints))
-                return expanded_nodes, constraints, 0
+                return expanded_nodes, constraints, 0, None
 
             else:
                 print('No solution found for ' + str(self.id))
-                return expanded_nodes, constraints, 1
+                return expanded_nodes, constraints, 1, self
 
     def compute_time_distance(self):
         """
@@ -360,8 +359,6 @@ class Aircraft(object):
                     # first check whether one of the Ac is at an intersection, heading into the other AC which is at a
                     # node between intersections. This is a right of way situation, where the AC at the intersection
                     # HAS to move. No bidding is done in this case
-                    # curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
-                    # TODO: it wil still start a bidding war if this situation occurs
                     if len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) > 2:
                         # self is located between intersections, AC2 is located at intersection and heading into it
                         # impose constraints on AC2 such that it HAS to move away from th intersection
@@ -401,9 +398,7 @@ class Aircraft(object):
                     # TODO: figure out deadlock situations. Should program return immediately? Should it continue with a high cost?? Should other AC automatically lose?
                     if not success:
                         # if self is in a deadlock, the function should immediately return. It cannot plan any further
-
-                        # performance indicator
-                        deadlocks += 1
+                        deadlocks += 1      # performance indicator
                         deadlock_ac.append(self)
                         print('!!! DEADLOCK FOR SELF !!!')
                         return False, deadlocks, deadlock_ac

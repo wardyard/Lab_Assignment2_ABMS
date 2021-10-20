@@ -29,9 +29,11 @@ def run_prioritized_planner(aircraft_list, nodes_dict, edges_dict, heuristics, c
         if ac.spawntime == t:   # so first come first serve priority
             ac.status = "taxiing"
             ac.position = nodes_dict[ac.start]["xy_pos"]
-            exp_nodes, constraints, deadlcks = ac.plan_prioritized(nodes_dict, edges_dict, heuristics,
-                                                                   constraints, dt, t)
-            deadlocks += deadlcks
+            exp_nodes, constraints, deadlcks, locked_ac = ac.plan_prioritized(nodes_dict, edges_dict, heuristics,
+                                                                                constraints, dt, t)
+            if locked_ac is not None:
+                deadlocks += deadlcks
+                aircraft_list.remove(locked_ac)
             expanded_nodes += exp_nodes
     stop = time.perf_counter_ns()
     time_delta = stop - start   # in nanoseconds

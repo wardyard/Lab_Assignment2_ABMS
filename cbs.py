@@ -59,6 +59,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
     num_of_generated = 0
     num_of_expanded = 0     # will be updated and returned upon success
     num_of_deadlocks = 0    # deadlocks performance indicator
+    deadlock_ac = []        # list of AC which were in a deadlock
 
     # generate root node with no constraints. Paths of root node are planned independently.
     # Acids denotes the list of aircraft IDs for which a path should be planned. The paths in p['paths'] correspond
@@ -105,12 +106,14 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 # update the AC from_to list. this list is used to determine the current position of the aircraft when
                 # astar has to be performed
                 ac.from_to = [path[0][0], next_node]
+                # update current planned path of AC
+                ac.current_path = path.copy()
                 # append the constructed path to the root node
                 root['paths'].append(path)
                 # append ACID of this AC to the acids list
                 root['acids'].append(ac.id)
             else:
-                # TODO: remove deadlock AC from map and corresponding lists
+                aircraft_list.remove(ac)
                 num_of_deadlocks += 1
                 raise BaseException('Deadlock CBS independent paths')
 
@@ -147,10 +150,9 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     # update the AC from_to nodes
                     ac1.from_to = [acid_path[0][0], acid_path[1][0]]
                     # compute the KPIs
-                    ac1.compute_time_distance(acid_path)
+                    ac1.compute_time_distance()
                     if acid_path[0][1] != t:
                         raise Exception("Something is wrong with the timing of the path planning")
-
             return num_of_expanded, num_of_deadlocks
 
         # there are collisions, extract 1 of them
@@ -208,6 +210,16 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     aircr.path_to_goal = q_path[1:].copy()
                     next_node_id = q_path[1][0]
                     aircr.from_to = [q_path[0][0], next_node_id]
+                    # update the current path of the aircraft, used for performance indicators
+                    curr_path = aircr.current_path
+                    # find index in current_path that corresponds to this timestep. Us e filter with lambda
+                    # expression to find the tuple corresponding to the current timestep. Then find the index of
+                    # this tuple in the current_path
+                    index_curr_timestep = curr_path.index(
+                        list(filter(lambda node_t_pair: node_t_pair[1] == t in node_t_pair, curr_path))[0])
+                    # now change the current_path of the AC from this step onwards into the newly calculated path
+                    curr_path[index_curr_timestep:] = q_path
+                    aircr.current_path = curr_path.copy()
                     print('12) aircr.from_to updated: ' + str(aircr.from_to))
                     print('12) Path was found for aircraft with extra constraint')
                     print('13) Found path for AC ' + str(q_acid) + ' : ' + str(q_path))
@@ -221,6 +233,9 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
                 else:
+                    q['acids'].remove(q_acid)
+                    q['paths'].remove(q['paths'][q_acid])
+                    aircraft_list.remove(aircr)
                     num_of_deadlocks += 1
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
