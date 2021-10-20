@@ -110,6 +110,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 # append ACID of this AC to the acids list
                 root['acids'].append(ac.id)
             else:
+                # TODO: remove deadlock AC from map and corresponding lists
                 num_of_deadlocks += 1
                 raise BaseException('Deadlock CBS independent paths')
 

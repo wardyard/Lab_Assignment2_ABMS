@@ -5,6 +5,9 @@ import time
 
 
 def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, observation_size):
+    deadlocks = 0
+    expanded_nodes = 0  # KPI
+    start = time.perf_counter_ns()
     # extract dictionary with nodeID keys and corresponding AC on this node
     radar_dict = radar(aircraft_lst)
     print('----------------------------------------------------------------')
@@ -15,8 +18,14 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
             ac.position = nodes_dict[ac.start]["xy_pos"]
         create_observation_space(ac, radar_dict, nodes_dict, observation_size)
         observed_ac = ac.scan()
-        ac.perform_ind_planning(observed_ac, t, dt, heuristics)
-    return None
+        exp_nodes, deadlcks = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
+        deadlocks += deadlcks
+        expanded_nodes +=  exp_nodes
+
+    stop = time.perf_counter_ns()
+    # computing time performance indicator
+    time_delta = stop - start   # in nanoseconds
+    return time_delta, expanded_nodes, deadlocks
 
 
 def radar(aircraft_list):

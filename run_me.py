@@ -24,7 +24,7 @@ nodes_file = "nodes.xlsx"  # xlsx file with for each node: id, x_pos, y_pos, typ
 edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (node), length
 
 # Parameters that can be changed:
-simulation_time = 20
+simulation_time = 40
 planner = "Individual"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
@@ -226,7 +226,7 @@ while running:
                                          "heading": ac.heading}
         escape_pressed = map_running(map_properties, current_states, t)
         timer.sleep(visualization_speed)
-    '''
+
     # Spawn aircraft for this timestep at random but make sure to not spawn them on another aircraft
     # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
     # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
@@ -287,6 +287,7 @@ while running:
     if t == 4:
         ac2 = Aircraft(2, 'D', 97, 1, t, nodes_dict)
         aircraft_lst.append(ac2)
+    '''
     # Do planning
     if planner == "Independent":
         if t == 1:  # (Hint: Think about the condition that triggers (re)planning)
@@ -306,6 +307,7 @@ while running:
             deadlocks += deadlcks
         # computing time performance indicator
         computing_times.append(time_delta)
+
     elif planner == "CBS":
         time_delta, exp_nodes, deadlocks = run_CBS(aircraft_lst, nodes_dict, edges_dict,
                                                         heuristics, dt, t)
@@ -313,12 +315,22 @@ while running:
         expanded_nodes += exp_nodes
         # computing time performance indicator
         computing_times.append(time_delta)
-        # TODO: deadlocks and remove AC from map and AC list
+        # TODO: remove AC from map and AC list
+        # deadlocks performance indicator
+        deadlocks += deadlcks
+
     elif planner == "Individual":
         # set the planned_t variable to False, only once per time step!
         for ac in aircraft_lst:
             ac.planned_t = False
-        run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, ind_obs_size)
+        time_delta, exp_nodes, deadlcks = run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, ind_obs_size)
+        # expanded nodes performance indicator
+        expanded_nodes += exp_nodes
+        # computing time performance indicator
+        computing_times.append(time_delta)
+        # deadlocks performance indicator
+        deadlocks += deadlcks
+
     else:
         raise Exception("Planner:", planner, "is not defined.")
 

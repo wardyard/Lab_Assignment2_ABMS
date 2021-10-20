@@ -165,6 +165,7 @@ class Aircraft(object):
         return exp_nodes
 
     def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, dt, t):
+        # TODO: remove AC in deadlock from map
         """
         Plans path for taxiing aircraft where constraints are constructed on the go in terms of priority
         Args:
@@ -177,6 +178,7 @@ class Aircraft(object):
         Returns:
             expanded nodes
             updated constraints
+            number of deadlocks occurred
         """
 
         if self.status == "taxiing":
@@ -234,13 +236,16 @@ class Aircraft(object):
                 return expanded_nodes, constraints, 1
 
     def compute_time_distance(self, path):
+        # TODO: compute_time_distance is only working for prioritzed and independent planning since the paths are only
+        # TODO: calculated once for each AC. Fix this so that we can obtain these performance indicators even if the
+        # TODO: ac path is replanned at every timestep
         """
         computes the performance indicators for travel time, travel distance and their ratio
         This function is called when the A/C already has a planned path. It then updates instance
         variables representing these performance indicators
         """
         # travel time performance indicator
-        start_time = path[0][1]
+        start_time = self.spawntime
         arrival_time = path[-1][1]
         self.travel_time = float(arrival_time - start_time)
 
@@ -300,18 +305,26 @@ class Aircraft(object):
         Returns:
 
         """
+        # performance indicators
+        expanded_nodes = 0
+        deadlocks = 0
+
         # if this AC was already treated and it lost to another AC
         if self.planned_t:
             return None
         # if the AC doesn't have a path yet, calculate it independently
         curr_pos_self = self.from_to[0] if self.from_to[0] != 0 else self.start
         if len(self.path_to_goal) == 0:
-            success, path, expanded_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, self.constraints,
+            success, path, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, self.constraints,
                                                  t, dt, self.id, True, self)
             if success:
                 self.path_to_goal = path[1:]
                 self.from_to = [path[0][0], path[1][0]]
+                # performance indicator
+                expanded_nodes += exp_nodes
             else:
+                # performance indictaor
+                deadlocks += 1
                 print('no base path found for ac1')
 
         print('5) perform ind planning called')
@@ -322,12 +335,16 @@ class Aircraft(object):
                 path2 = [(curr_pos_ac2, t)] + ac2.path_to_goal[:2]
                 # if AC2 doesn't have a path yet, plan it
                 if len(path2) == 0:
-                    success, path, expanded_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics, ac2.constraints,
+                    success, path, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics, ac2.constraints,
                                                      t, dt, ac2.id, True, ac2)
                     if success:
                         ac2.path_to_goal = path[1:]
                         ac2.from_to = [path[0][0], path[1][0]]
+                        # performance indicator
+                        expanded_nodes += exp_nodes
                     else:
+                        # performance indicator
+                        deadlocks += 1
                         print('no base path found for ac2')
                 # included current position and node as well to be able to detect edge collisions
                 path = [(curr_pos_self, t)] + self.path_to_goal[:2]
@@ -361,14 +378,29 @@ class Aircraft(object):
                             constraints.append({'acid': ac2.id, 'loc': loc, 'timestep': timestep})
 
                     # now, plan the paths independently for both AC
-                    success, path_self, expanded_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, constraints + self.constraints,
+                    success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics, constraints + self.constraints,
                                       t, dt, self.id, True, self)
+                    # TODO: figure out deadlock situations. Should program return immediately? Should it continue with a high cost?? Should other AC automatically lose?
                     if not success:
+                        # performance indicator
+                        deadlocks += 1
+                        # TODO: this should be changed maybe to some return statement
                         raise BaseException('no path found for ac1')
-                    success, path_ac2, expanded_nodes  = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics, constraints + ac2.constraints, t,
+                    else:
+                        # performance indicator
+                        expanded_nodes += exp_nodes
+
+                    success, path_ac2, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics, constraints + ac2.constraints, t,
                                      dt, ac2.id, True, ac2)
                     if not success:
+                        # performance indicator
+                        deadlocks += 1
+                        # TODO: this should be changed maybe to some return statement
                         raise BaseException('no path found for ac2')
+                    else:
+                        # performance indicator
+                        expanded_nodes += exp_nodes
+
                     # determine cost for each of the AC involved, calculated as fraction increase w.r.t. old path
                     cost_self = 1 - ((len(path_self) - len(self.path_to_goal))/len(self.path_to_goal))
                     cost_ac2 = 1 - ((len(path_ac2) - len(ac2.path_to_goal))/len(ac2.path_to_goal))
@@ -423,4 +455,4 @@ class Aircraft(object):
                         if not ac.planned_t:
                             ac.constraints.append({'acid': ac.id, 'loc': [next_pos_losing], 'timestep': t + dt})
 
-        return None
+        return expanded_nodes, deadlocks
