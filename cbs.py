@@ -270,6 +270,7 @@ def detect_collision(path1, path2, dt):
         # check whether 2 AC will be at departing runway at the same time
         # the collision format will be the same as an edge constraint, but standard_splitting is modified
         # to account for this special type of constraint
+        # TODO: this collision format isn't good. It denotes an edge collision instead of 2 vertex collisions
         elif curr_loc_valid and (loc1 == 1.0 or loc2 == 1.0) and (loc1 == 2.0 or loc2 == 2.0) and loc1 != loc2:
             #print('RUNWAY CONSTRAINT DETECT_COLLISION')
             return [[loc1, loc2], timestep]

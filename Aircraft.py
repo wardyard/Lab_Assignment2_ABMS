@@ -1,5 +1,7 @@
 from single_agent_planner import simple_single_agent_astar, astar
-from cbs import detect_collision
+# from cbs import detect_collision
+from cbs import detect_collisions
+from cbs import standard_splitting
 import math
 import random
 
@@ -337,12 +339,14 @@ class Aircraft(object):
                 # path for next 2 timesteps. Included current timestep and position as wel to detect edge constraints
                 path2 = [(curr_pos_ac2, t)] + ac2.path_to_goal[:2]
                 # if AC2 doesn't have a path yet, plan it
-                if len(path2) == 0:
+                if len(path2) == 1:
                     success, path, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics, ac2.constraints,
                                                      t, dt, ac2.id, True, ac2)
                     if success:
                         ac2.path_to_goal = path[1:]
                         ac2.from_to = [path[0][0], path[1][0]]
+                        # update current path, used for travelling time and distance performance indicator
+                        ac2.current_path = path.copy()
                         # performance indicator
                         expanded_nodes += exp_nodes
                     else:
@@ -351,8 +355,11 @@ class Aircraft(object):
                         print('no base path found for ac2')
                 # included current position and node as well to be able to detect edge collisions
                 path = [(curr_pos_self, t)] + self.path_to_goal[:2]
-                collision = detect_collision(path, path2, dt)
-                if collision is not None and not ac2.planned_t:
+                # detect collisions, use CBS function for this since we will use same constraint format as CBS
+                collisions = detect_collisions([path, path2], [self.id, ac2.id], dt)
+                if len(collisions) > 0 and not ac2.planned_t:
+                    # extract first collision
+                    collision = collisions[0]
                     constraints = []
                     # indicates situation with right of way
                     right_of_way = False
@@ -380,6 +387,8 @@ class Aircraft(object):
 
                     # if no right of way situation occurred
                     else:
+                        constraints = standard_splitting(collision, dt)
+                        '''
                         # we may have a regular collision. Create constraints
                         loc = collision[0]
                         timestep = collision[1]
@@ -391,11 +400,11 @@ class Aircraft(object):
                         elif len(loc) == 1:
                             constraints.append({'acid': self.id, 'loc': loc, 'timestep': timestep})
                             constraints.append({'acid': ac2.id, 'loc': loc, 'timestep': timestep})
-
+                        '''
                     # now, plan the paths independently for both AC with the newly added constraints
                     success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics,
                                                           constraints + self.constraints, t, dt, self.id, True, self)
-                    # TODO: figure out deadlock situations. Should program return immediately? Should it continue with a high cost?? Should other AC automatically lose?
+
                     if not success:
                         # if self is in a deadlock, the function should immediately return. It cannot plan any further
                         deadlocks += 1      # performance indicator
