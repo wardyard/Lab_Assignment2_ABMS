@@ -305,6 +305,7 @@ class Aircraft(object):
         Returns:
 
         """
+        # TODO: add corresponding constraint to losing aircraft
         # performance indicators
         expanded_nodes = 0
         deadlocks = 0
@@ -492,6 +493,13 @@ class Aircraft(object):
                             self.current_path = path_self.copy()
                         # compute travelling time and distance performance indiactors
                         self.compute_time_distance()
+                        # TODO: if there are still collisions, this could be due to a inheritance problem here
+                        # add the constraint to the ACs constraints list
+                        constraints_self = self.constraints
+                        for constrnt in constraints:
+                            if constrnt['acid'] == self.id:
+                                constraints_self.append(constrnt)
+                        self.constraints = constraints_self.copy()
 
                     elif ac2.planned_t:
                         # if self wins biddding war, ac2 has to adjust path
@@ -514,6 +522,13 @@ class Aircraft(object):
                             ac2.current_path = path_ac2.copy()
                         # compute travelling time and distance performance indicators
                         ac2.compute_time_distance()
+                        # TODO: if there are still collisions, this could be due to a inheritance problem here
+                        # add the constraint to the ACs constraints list
+                        constraints_ac2 = ac2.constraints
+                        for constrnt in constraints:
+                            if constrnt['acid'] == ac2.id:
+                                constraints_ac2.append(constrnt)
+                        ac2.constraints = constraints_ac2.copy()
 
                     else:
                         raise BaseException('no AC was planned')

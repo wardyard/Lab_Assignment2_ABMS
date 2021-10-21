@@ -29,8 +29,8 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = False  # pygame visualization
-visualization_speed = 1  # set at 0.1 as default
+visualization = True  # pygame visualization
+visualization_speed = 0.1  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -145,7 +145,7 @@ def create_graph(nodes_dict, edges_dict, plot_graph=True):
 # =============================================================================
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 50
+NUM_OF_SIMULATIONS = 1
 
 nodes_dict, edges_dict, start_and_goal_locations = import_layout(nodes_file, edges_file)
 graph = create_graph(nodes_dict, edges_dict, plot_graph)
@@ -234,7 +234,7 @@ for i in range(NUM_OF_SIMULATIONS):
                                              "heading": ac.heading}
             escape_pressed = map_running(map_properties, current_states, t)
             timer.sleep(visualization_speed)
-
+        '''
         # Spawn aircraft for this timestep at random but make sure to not spawn them on another aircraft
         # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
         # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
@@ -286,20 +286,54 @@ for i in range(NUM_OF_SIMULATIONS):
 
 
         '''
-        if t == 0:
-            ac = Aircraft(1, 'A', 38, 98, t, nodes_dict)
-            #ac1 = Aircraft(2, 'A', 38, 75, t, nodes_dict)
-            aircraft_lst.append(ac)
-            #aircraft_lst.append(ac1)
-    
-        if t == 2:
-            ac2 = Aircraft(2, 'A', 37, 36, t, nodes_dict)
-            aircraft_lst.append(ac2)
-
-        if t == 6.5:
-            ac3 = Aircraft(3, 'D', 36, 1, t, nodes_dict)
-            aircraft_lst.append((ac3))
         '''
+         aircraft_lst = [
+            Aircraft(1, 'A', 37, 36, 1.5, nodes_dict),
+            Aircraft(2, 'D', 36, 1, 2, nodes_dict),
+            Aircraft(3, 'A', 37, 98, 2.5, nodes_dict),
+            Aircraft(4, 'D', 36, 1, 3, nodes_dict),
+            Aircraft(5, 'A', 38, 97, 3.5, nodes_dict),
+            Aircraft(6, 'A', 37, 34, 4.5, nodes_dict),
+            Aircraft(7, 'D', 34, 1, 6.5, nodes_dict),
+            Aircraft(8, 'A', 37, 98, 7, nodes_dict),
+            Aircraft(9, 'D', 35, 1, 7.5, nodes_dict),
+            Aircraft(10, 'D', 36, 2, 8.5, nodes_dict),
+            Aircraft(11, 'A', 37, 97, 9.5, nodes_dict),
+            Aircraft(12, 'A', 37, 36, 11.5, nodes_dict),
+            Aircraft(13, 'A', 38, 98, 12, nodes_dict),
+            Aircraft(14, 'A', 37, 98, 12.5, nodes_dict)
+        ]
+        '''
+
+        if t==1.5:
+            aircraft_lst.append(Aircraft(1, 'A', 37, 36, 1.5, nodes_dict))
+        if t == 2:
+            aircraft_lst.append(Aircraft(2, 'D', 36, 1, 2, nodes_dict))
+        if t==2.5:
+            aircraft_lst.append(Aircraft(3, 'A', 37, 98, 2.5, nodes_dict))
+        if t==3:
+            aircraft_lst.append(Aircraft(4, 'D', 36, 1, 3, nodes_dict))
+        if t==3.5:
+            aircraft_lst.append(Aircraft(5, 'A', 38, 97, 3.5, nodes_dict))
+        if t==4.5:
+            aircraft_lst.append(Aircraft(6, 'A', 37, 34, 4.5, nodes_dict))
+        if t==6.5:
+            aircraft_lst.append(Aircraft(7, 'D', 34, 1, 6.5, nodes_dict))
+        if t==7:
+            aircraft_lst.append(Aircraft(8, 'A', 37, 98, 7, nodes_dict))
+        if t==7.5:
+            aircraft_lst.append(Aircraft(9, 'D', 35, 1, 7.5, nodes_dict))
+        if t==8.5:
+            aircraft_lst.append(Aircraft(10, 'D', 36, 2, 8.5, nodes_dict))
+        if t==9.5:
+            aircraft_lst.append(Aircraft(11, 'A', 37, 97, 9.5, nodes_dict))
+        if t==11.5:
+            aircraft_lst.append(Aircraft(12, 'A', 37, 36, 11.5, nodes_dict))
+        if t==12:
+            aircraft_lst.append(Aircraft(13, 'A', 38, 98, 12, nodes_dict))
+        if t==12.5:
+            aircraft_lst.append(Aircraft(14, 'A', 37, 98, 12.5, nodes_dict))
+
         # Do planning
         if planner == "Independent":
             time_delta, exp_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
@@ -333,6 +367,10 @@ for i in range(NUM_OF_SIMULATIONS):
             # set the planned_t variable to False, only once per time step!
             for ac in aircraft_lst:
                 ac.planned_t = False
+                if ac.spawntime == t:
+                    ac.status = "taxiing"
+                    ac.position = nodes_dict[ac.start]["xy_pos"]
+
             time_delta, exp_nodes, deadlcks = run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, ind_obs_size)
             # expanded nodes performance indicator
             expanded_nodes += exp_nodes
