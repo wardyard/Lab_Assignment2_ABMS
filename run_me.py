@@ -24,7 +24,7 @@ nodes_file = "nodes.xlsx"  # xlsx file with for each node: id, x_pos, y_pos, typ
 edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (node), length
 
 # Parameters that can be changed:
-simulation_time = 20
+simulation_time = 40
 planner = "Individual"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
@@ -145,7 +145,7 @@ def create_graph(nodes_dict, edges_dict, plot_graph=True):
 # =============================================================================
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 20
+NUM_OF_SIMULATIONS = 3
 
 nodes_dict, edges_dict, start_and_goal_locations = import_layout(nodes_file, edges_file)
 graph = create_graph(nodes_dict, edges_dict, plot_graph)
@@ -266,16 +266,17 @@ for i in range(NUM_OF_SIMULATIONS):
                 # current node of this AC
                 ac_pos = aircr.from_to[0]
                 # check if there's currently an AC at the spawn position
-                if aircr.status == "taxiing" and ac_pos == start_node:
-                    spawn_on_other_ac = True
-                    break
+                if aircr.status == "taxiing":
+                    if ac_pos == start_node:
+                        spawn_on_other_ac = True
+                        break
 
-                # if not, check if the AC will head straight into the spawned aircraft
-                # aka check if it will be located at the preceding node of the spawning node
-                # nodes_dict[start_node]["neighbors"] gives node IDs of neighbouring nodes
-                if ac_pos in nodes_dict[start_node]["neighbors"]:
-                    spawn_on_other_ac = True
-                    break
+                    # if not, check if the AC will head straight into the spawned aircraft
+                    # aka check if it will be located at the preceding node of the spawning node
+                    # nodes_dict[start_node]["neighbors"] gives node IDs of neighbouring nodes
+                    if ac_pos in nodes_dict[start_node]["neighbors"]:
+                        spawn_on_other_ac = True
+                        break
 
             # only if it's safe to spawn, add the ac to the list
             if not spawn_on_other_ac:
@@ -283,6 +284,7 @@ for i in range(NUM_OF_SIMULATIONS):
                 aircraft_lst.append(ac)
                 spawned_ac += 1
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
+
         '''
          aircraft_lst = [
             Aircraft(1, 'A', 37, 36, 1.5, nodes_dict),
@@ -302,35 +304,23 @@ for i in range(NUM_OF_SIMULATIONS):
         ]
         '''
         '''
-        if t==1.5:
-            aircraft_lst.append(Aircraft(1, 'A', 37, 36, 1.5, nodes_dict))
-        if t == 2:
-            aircraft_lst.append(Aircraft(2, 'D', 36, 1, 2, nodes_dict))
+        if t==0.:
+            aircraft_lst.append(Aircraft(1, 'D', 34, 2, t, nodes_dict))
+        if t == 1.5:
+            aircraft_lst.append(Aircraft(2, 'D', 35, 2, t, nodes_dict))
+        if t==2:
+            aircraft_lst.append(Aircraft(3, 'A', 37, 98, t, nodes_dict))
         if t==2.5:
-            aircraft_lst.append(Aircraft(3, 'A', 37, 98, 2.5, nodes_dict))
-        if t==3:
-            aircraft_lst.append(Aircraft(4, 'D', 36, 1, 3, nodes_dict))
+            aircraft_lst.append(Aircraft(4, 'D', 36, 1, t, nodes_dict))
         if t==3.5:
-            aircraft_lst.append(Aircraft(5, 'A', 38, 97, 3.5, nodes_dict))
-        if t==4.5:
-            aircraft_lst.append(Aircraft(6, 'A', 37, 34, 4.5, nodes_dict))
-        if t==6.5:
-            aircraft_lst.append(Aircraft(7, 'D', 34, 1, 6.5, nodes_dict))
-        if t==7:
-            aircraft_lst.append(Aircraft(8, 'A', 37, 98, 7, nodes_dict))
-        if t==7.5:
-            aircraft_lst.append(Aircraft(9, 'D', 35, 1, 7.5, nodes_dict))
-        if t==8.5:
-            aircraft_lst.append(Aircraft(10, 'D', 36, 2, 8.5, nodes_dict))
-        if t==9.5:
-            aircraft_lst.append(Aircraft(11, 'A', 37, 97, 9.5, nodes_dict))
-        if t==11.5:
-            aircraft_lst.append(Aircraft(12, 'A', 37, 36, 11.5, nodes_dict))
-        if t==12:
-            aircraft_lst.append(Aircraft(13, 'A', 38, 98, 12, nodes_dict))
-        if t==12.5:
-            aircraft_lst.append(Aircraft(14, 'A', 37, 98, 12.5, nodes_dict))
+            aircraft_lst.append(Aircraft(5, 'D', 36, 1, t, nodes_dict))
+        if t==4:
+            aircraft_lst.append(Aircraft(6, 'A', 38, 98, t, nodes_dict))
+        if t==6:
+            aircraft_lst.append(Aircraft(7, 'D', 36, 2, t, nodes_dict))
         '''
+
+
         '''
         if t == 1:
             aircraft_lst.append(Aircraft(1, 'D', 6, 1,t, nodes_dict))
@@ -471,6 +461,7 @@ for i in range(NUM_OF_SIMULATIONS):
     print("Average computing time: " + str(avg_computing_time) + ' nanoseconds')
     print("Expanded nodes: " + str(expanded_nodes))  # TODO: this gives 0
     print("Deadlocks: " + str(deadlocks))
+    print('Arrived AC: ' + str(sum(throughputs)))
 
     '''
     # heat map experiments

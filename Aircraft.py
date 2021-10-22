@@ -336,7 +336,7 @@ class Aircraft(object):
                 print('no base path found for ac1')
 
         for ac2 in observed_ac:
-            if ac2.id != self.id:
+            if ac2.id != self.id and not self.planned_t:
                 # denotes whether one of the 2 current AC is deadlocked
                 deadlock_occurred = False
                 curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
@@ -364,141 +364,125 @@ class Aircraft(object):
                 path = [(curr_pos_self, t)] + self.path_to_goal[:2]
                 # detect collisions, use CBS function for this since we will use same constraint format as CBS
                 collisions = detect_collisions([path, path2], [self.id, ac2.id], dt)
-                if len(collisions) > 0:
+                if len(collisions) > 0 and not ac2.planned_t:
                     # extract first collision
                     collision = collisions[0]
                     constraints = []
-                    if not ac2.planned_t:
-                        # indicates situation with right of way
-                        right_of_way = False
-                        # first check whether one of the Ac is at an intersection, heading into the other AC which is at a
-                        # node between intersections. This is a right of way situation, where the AC at the intersection
-                        # HAS to move. No bidding is done in this case
-                        if len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) > 2:
-                            # self is located between intersections, AC2 is located at intersection and heading into it
-                            # impose constraints on AC2 such that it HAS to move away from th intersection
-                            constraints.append({'acid': ac2.id, 'loc': [curr_pos_ac2], 'timestep': t + dt})
-                            constraints.append({'acid': ac2.id, 'loc': [curr_pos_self], 'timestep': t + dt})
-                            # indicate that this is a right of way situation
-                            right_of_way = True
-                            # AC2 has to move, so we can consider it planned for this timestep
+
+                    # indicates situation with right of way
+                    right_of_way = False
+                    # first check whether one of the Ac is at an intersection, heading into the other AC which is at a
+                    # node between intersections. This is a right of way situation, where the AC at the intersection
+                    # HAS to move. No bidding is done in this case
+                    if len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) > 2:
+                        # self is located between intersections, AC2 is located at intersection and heading into it
+                        # impose constraints on AC2 such that it HAS to move away from th intersection
+                        constraints.append({'acid': ac2.id, 'loc': [curr_pos_ac2], 'timestep': t + dt})
+                        constraints.append({'acid': ac2.id, 'loc': [curr_pos_self], 'timestep': t + dt})
+                        # indicate that this is a right of way situation
+                        right_of_way = True
+                        # AC2 has to move, so we can consider it planned for this timestep
+                        ac2.planned_t = True
+                    elif len(self.nodes_dict[curr_pos_self]["neighbors"]) > 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
+                        # ac2 is located between intersections and self is located at intersection and heading into ac2
+                        # impose constraints on self such that self HAS to move away from intersection
+                        constraints.append({'acid': self.id, 'loc': [curr_pos_ac2], 'timestep': t + dt})
+                        constraints.append({'acid': self.id, 'loc': [curr_pos_self], 'timestep': t + dt})
+                        # indicate that this is a right of way situation
+                        right_of_way = True
+                        # self has to move, so we can consider it planned for this timestep
+                        self.planned_t = True
+
+                    # if no right of way situation occurred
+                    else:
+                        constraints = standard_splitting(collision, dt)
+                        '''
+                        # we may have a regular collision. Create constraints
+                        loc = collision[0]
+                        timestep = collision[1]
+                        # edge collision
+                        if len(loc) > 1:
+                            constraints.append({'acid': self.id, 'loc': [loc[0], loc[1]], 'timestep': timestep + dt})
+                            constraints.append({'acid': ac2.id, 'loc': [loc[1], loc[0]], 'timestep': timestep + dt})
+                        # vertex collision
+                        elif len(loc) == 1:
+                            constraints.append({'acid': self.id, 'loc': loc, 'timestep': timestep})
+                            constraints.append({'acid': ac2.id, 'loc': loc, 'timestep': timestep})
+                        '''
+                    # now, plan the paths independently for both AC with the newly added constraints
+                    success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics,
+                                                          constraints + self.constraints, t, dt, self.id, True, self)
+
+                    if not success:
+                        # if self is in a deadlock, the function should immediately return. It cannot plan any further
+                        deadlocks += 1      # performance indicator
+                        expanded_nodes += exp_nodes     # performance indicator
+                        deadlock_ac.append(self)
+                        deadlock_occurred = True
+                        print('!!! DEADLOCK FOR SELF !!!')
+                        return expanded_nodes, deadlocks, deadlock_ac
+                    else:
+                        # performance indicator
+                        expanded_nodes += exp_nodes
+
+                    success, path_ac2, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics,
+                                                         constraints + ac2.constraints, t, dt, ac2.id, True, ac2)
+                    if not success:
+                        # if ac2 is in a deadlock, the function should not immediately return because self can still
+                        # plan with the other aircraft in its observation space. However, AC2 will have to be removed
+                        # from the aircraft_lst, that's why it's added to deadlock_ac. If AC2 is in a deadlock, we
+                        # just use path_self for self path instead of path. This may be changed later on.
+                        # performance indicator
+                        deadlocks += 1
+                        expanded_nodes += exp_nodes  # performance indicator
+                        # we state that self should be planned if AC2 is in a deadlock
+                        self.planned_t = True
+                        deadlock_occurred = True
+                        deadlock_ac.append(ac2)
+                        print('!!! DEADLOCK FOR AC2 !!!')
+                    else:
+                        # performance indicator
+                        expanded_nodes += exp_nodes
+
+                    # bidding only happens if we're not in a right of way situation
+                    if not right_of_way and not deadlock_occurred:
+                        # determine cost for each of the AC involved, calculated as fraction increase w.r.t. old path
+                        # the -1 in numerator is because path_self and path_ac2 start from current position whereas
+                        # path_to_goal starts from next node
+                        cost_self = ((len(path_self) - 1 - len(self.path_to_goal))/len(self.path_to_goal))
+                        cost_ac2 = ((len(path_ac2) - 1 - len(ac2.path_to_goal))/len(ac2.path_to_goal))
+
+                        # calculate corresponding bids
+                        bid_self = cost_self * self.budget
+                        bid_ac2 = cost_ac2 * ac2.budget
+                        # TODO: this part has a lot of duplicated code, fix this
+                        # next position in the path of the losing aircraft
+                        next_pos_losing = None
+                        # if current AC wins negotiation or same bids and self has largest cost
+                        if bid_self > bid_ac2 or (bid_self == bid_ac2 and cost_self > cost_ac2):
+                            self.budget = self.budget - 1.1*bid_ac2 if 1.1*bid_ac2 < bid_self else self.budget - bid_self
+                            # indicate that the planning of AC2 is done for this timestep
                             ac2.planned_t = True
-                        elif len(self.nodes_dict[curr_pos_self]["neighbors"]) > 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
-                            # ac2 is located between intersections and self is located at intersection and heading into ac2
-                            # impose constraints on self such that self HAS to move away from intersection
-                            constraints.append({'acid': self.id, 'loc': [curr_pos_ac2], 'timestep': t + dt})
-                            constraints.append({'acid': self.id, 'loc': [curr_pos_self], 'timestep': t + dt})
-                            # indicate that this is a right of way situation
-                            right_of_way = True
-                            # self has to move, so we can consider it planned for this timestep
+
+                        # if AC2 wins negotiation or same bids and AC2 has largest cost
+                        elif bid_self < bid_ac2 or (bid_self == bid_ac2 and cost_self < cost_ac2):
+                            ac2.budget = ac2.budget - 1.1*bid_self if 1.1*bid_self < bid_ac2 else ac2.budget - bid_ac2
+                            # indicate that the planning of self is done for this timestep
                             self.planned_t = True
 
-                        # if no right of way situation occurred
-                        else:
-                            constraints = standard_splitting(collision, dt)
-                            '''
-                            # we may have a regular collision. Create constraints
-                            loc = collision[0]
-                            timestep = collision[1]
-                            # edge collision
-                            if len(loc) > 1:
-                                constraints.append({'acid': self.id, 'loc': [loc[0], loc[1]], 'timestep': timestep + dt})
-                                constraints.append({'acid': ac2.id, 'loc': [loc[1], loc[0]], 'timestep': timestep + dt})
-                            # vertex collision
-                            elif len(loc) == 1:
-                                constraints.append({'acid': self.id, 'loc': loc, 'timestep': timestep})
-                                constraints.append({'acid': ac2.id, 'loc': loc, 'timestep': timestep})
-                            '''
-                        # now, plan the paths independently for both AC with the newly added constraints
-                        success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics,
-                                                              constraints + self.constraints, t, dt, self.id, True, self)
-
-                        if not success:
-                            # if self is in a deadlock, the function should immediately return. It cannot plan any further
-                            deadlocks += 1      # performance indicator
-                            expanded_nodes += exp_nodes     # performance indicator
-                            deadlock_ac.append(self)
-                            deadlock_occurred = True
-                            print('!!! DEADLOCK FOR SELF !!!')
-                            return expanded_nodes, deadlocks, deadlock_ac
-                        else:
-                            # performance indicator
-                            expanded_nodes += exp_nodes
-
-                        success, path_ac2, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics,
-                                                             constraints + ac2.constraints, t, dt, ac2.id, True, ac2)
-                        if not success:
-                            # if ac2 is in a deadlock, the function should not immediately return because self can still
-                            # plan with the other aircraft in its observation space. However, AC2 will have to be removed
-                            # from the aircraft_lst, that's why it's added to deadlock_ac. If AC2 is in a deadlock, we
-                            # just use path_self for self path instead of path. This may be changed later on.
-                            # performance indicator
-                            deadlocks += 1
-                            expanded_nodes += exp_nodes  # performance indicator
-                            # we state that self should be planned if AC2 is in a deadlock
-                            self.planned_t = True
-                            deadlock_occurred = True
-                            deadlock_ac.append(ac2)
-                            print('!!! DEADLOCK FOR AC2 !!!')
-                        else:
-                            # performance indicator
-                            expanded_nodes += exp_nodes
-
-                        # bidding only happens if we're not in a right of way situation
-                        if not right_of_way and not deadlock_occurred:
-                            # determine cost for each of the AC involved, calculated as fraction increase w.r.t. old path
-                            cost_self = 1 - ((len(path_self) - len(self.path_to_goal))/len(self.path_to_goal))
-                            cost_ac2 = 1 - ((len(path_ac2) - len(ac2.path_to_goal))/len(ac2.path_to_goal))
-
-                            # calculate corresponding bids
-                            bid_self = cost_self * self.budget
-                            bid_ac2 = cost_ac2 * ac2.budget
-                            # TODO: this part has a lot of duplicated code, fix this
-                            # next position in the path of the losing aircraft
-                            next_pos_losing = None
-                            # if current AC wins negotiation or same bids and self has largest cost
-                            if bid_self > bid_ac2 or (bid_self == bid_ac2 and cost_self > cost_ac2):
-                                self.budget = self.budget - 1.1*bid_ac2 if 1.1*bid_ac2 < bid_self else self.budget - bid_self
+                        # if everything is equal, determine arbitrary
+                        elif bid_self == bid_ac2 and cost_self == cost_ac2:
+                            if random.random() < 0.5:
+                                self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
+                                    else self.budget - bid_self
                                 # indicate that the planning of AC2 is done for this timestep
                                 ac2.planned_t = True
 
-                            # if AC2 wins negotiation or same bids and AC2 has largest cost
-                            elif bid_self < bid_ac2 or (bid_self == bid_ac2 and cost_self < cost_ac2):
-                                ac2.budget = ac2.budget - 1.1*bid_self if 1.1*bid_self < bid_ac2 else ac2.budget - bid_ac2
+                            else:
+                                ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 \
+                                    else ac2.budget - bid_ac2
                                 # indicate that the planning of self is done for this timestep
                                 self.planned_t = True
-
-                            # if everything is equal, determine arbitrary
-                            elif bid_self == bid_ac2 and cost_self == cost_ac2:
-                                if random.random() < 0.5:
-                                    self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
-                                        else self.budget - bid_self
-                                    # indicate that the planning of AC2 is done for this timestep
-                                    ac2.planned_t = True
-
-                                else:
-                                    ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 \
-                                        else ac2.budget - bid_ac2
-                                    # indicate that the planning of self is done for this timestep
-                                    self.planned_t = True
-                    else:
-                        self.planned_t = True
-                        # self will still have to adjust to the already planned path
-                        success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics,
-                                                              constraints + self.constraints, t, dt, self.id, True,
-                                                              self)
-
-                        if not success:
-                            # if self is in a deadlock, the function should immediately return. It cannot plan any further
-                            deadlocks += 1  # performance indicator
-                            expanded_nodes += exp_nodes  # performance indicator
-                            deadlock_ac.append(self)
-                            deadlock_occurred = True
-                            print('!!! DEADLOCK FOR SELF !!!')
-                            return expanded_nodes, deadlocks, deadlock_ac
-                        else:
-                            # performance indicator
-                            expanded_nodes += exp_nodes
                     # check who won the bidding war, or who has to give priority
                     if self.planned_t:
                         # if ac2 wins biddding war, self has to adjust path
@@ -566,5 +550,73 @@ class Aircraft(object):
                     for ac in observed_ac:
                         if not ac.planned_t:
                             ac.constraints.append({'acid': ac.id, 'loc': [next_pos_losing], 'timestep': t + dt})
+
+                elif len(collisions) > 0 and ac2.planned_t:
+                    # if there is a collision between self and an already planned AC, self will need to add a constraint
+                    # to itself for a path construction that avoids crashing into ac2. However, self should not be
+                    # considered as "planned" because it will still be able to start bidding wars with other AC
+
+                    # add constraint which prohibits self from crashing into ac2 at next timestep
+                    collision = collisions[0]
+                    constraints = standard_splitting(collision, dt)
+                    # TODO: check inheritance
+                    self.constraints.append(constraints[0].copy())
+
+                    # find alternative path
+                    success, updated_path, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics,
+                                                          self.constraints, t, dt, self.id, True, self)
+                    if not success:
+                        # if self is in a deadlock, the function should immediately return. It cannot plan any further
+                        deadlocks += 1  # performance indicator
+                        expanded_nodes += exp_nodes  # performance indicator
+                        deadlock_ac.append(self)
+                        deadlock_occurred = True
+                        print('!!! DEADLOCK FOR SELF !!!')
+                        return expanded_nodes, deadlocks, deadlock_ac
+
+                    self.path_to_goal = updated_path[1:]
+                    self.from_to = [updated_path[0][0], updated_path[1][0]]
+                    # performance indicator
+                    expanded_nodes += exp_nodes
+
+                    # we should now check whether the newly found path will coincide with the paths of the AC already
+                    # looped over in observed_ac. To accomplish this, loop over all the ac which have been looped over
+                    # so far in observed_ac and check whether there is a collision somewhere. If there is, the function
+                    # perform_ind_planning should be repeated with the newly added constraint to self. This process
+                    # should be repeated until there are no more colliding paths between self and the already looped
+                    # over AC
+
+                    index_ac2 = observed_ac.index(ac2)
+                    for i in range(index_ac2):
+                        # extract corresponding ac from observed_ac
+                        ac22 = observed_ac[i]
+                        if ac22.id != self.id:
+                            # determine ac22 current position and path for next 2 timesteps
+                            curr_pos_ac22 = ac22.from_to[0] if ac22.from_to[0] != 0 else ac22.start
+                            path_ac22 = [(curr_pos_ac22, t)] + ac22.path_to_goal[:2]
+                            # ac22 should have a path already; so no need to check the length of path22
+                            updated_path_short = [(curr_pos_self, t)] + self.path_to_goal[:2]
+                            # detect if there are collisions
+                            new_collisions = detect_collisions([updated_path_short, path_ac22], [self.id, ac22.id], dt)
+                            # if there are collisions, replan
+                            if len(new_collisions) > 0:
+                                self.perform_ind_planning(observed_ac[:index_ac2+1], t, dt, heuristics)
+
+                    # the program gets to this line if there were no collisions with the other ac
+                    # if the loop is finished without collisions the current path and necessary instance variables
+                    # can be updated
+                    curr_path = self.current_path
+                    # if AC already has a path planned
+                    if len(curr_path) > 0:
+                        # find index in current_path that corresponds to this timestep. Us e filter with lambda
+                        # expression to find the tuple corresponding to the current timestep. Then find the index of
+                        # this tuple in the current_path
+                        index_curr_timestep = curr_path.index(
+                            list(filter(lambda node_t_pair: node_t_pair[1] == t in node_t_pair, curr_path))[0])
+                        # now change the current_path of the AC from this step onwards into the newly calculated path
+                        curr_path[index_curr_timestep:] = updated_path
+                        self.current_path = curr_path.copy()
+                    else:
+                        self.current_path = updated_path.copy()
         return expanded_nodes, deadlocks, deadlock_ac
 

@@ -10,18 +10,19 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
     start = time.perf_counter_ns()
 
     for ac in aircraft_lst:
-        # extract dictionary with nodeID keys and corresponding AC on this node
-        radar_dict = radar(aircraft_lst)
-        create_observation_space(ac, radar_dict, nodes_dict, observation_size)
-        observed_ac = ac.scan()
-        exp_nodes, deadlcks, deadlock_ac = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
-        # if deadlock situations occurred, remove these AC from the aircraft list
-        # TODO: check if this doesn't fuck up anything
-        if len(deadlock_ac) > 0:
-            deadlocks += deadlcks
-            for locked_ac in deadlock_ac:
-                aircraft_lst.remove(locked_ac)
-        expanded_nodes += exp_nodes
+        if ac.status == "taxiing":
+            # extract dictionary with nodeID keys and corresponding AC on this node
+            radar_dict = radar(aircraft_lst)
+            create_observation_space(ac, radar_dict, nodes_dict, observation_size)
+            observed_ac = ac.scan()
+            exp_nodes, deadlcks, deadlock_ac = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
+            # if deadlock situations occurred, remove these AC from the aircraft list
+            # TODO: check if this doesn't fuck up anything
+            if len(deadlock_ac) > 0:
+                deadlocks += deadlcks
+                for locked_ac in deadlock_ac:
+                    aircraft_lst.remove(locked_ac)
+            expanded_nodes += exp_nodes
 
     stop = time.perf_counter_ns()
     # computing time performance indicator
