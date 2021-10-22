@@ -305,10 +305,15 @@ class Aircraft(object):
         Returns:
 
         """
-        # TODO: add corresponding constraint to losing aircraft
         # performance indicators
         expanded_nodes = 0
         deadlocks = 0
+
+        # this boolean will be used to indicate that the ac in question didn't notice any collisions with its
+        # observed AC. If this is the case, its next position in its path will be turned into a constraint for the
+        # other ac in its observation space. This should eleminiate the need for replanning at intersevtions
+        # TODO: should we use replanning instead?
+        no_collisions = True
 
         # if there's an aircraft in a deadlock position, it will be added to this list
         deadlock_ac = []
@@ -337,6 +342,9 @@ class Aircraft(object):
 
         for ac2 in observed_ac:
             if ac2.id != self.id and not self.planned_t:
+                # denotes the need for replanning in a right of way situation. This needs to be done if e.g another
+                # AC in aircraft list did not have collisions, but the alternative path from self would collide with it
+                replan_right_of_way = False
                 # denotes whether one of the 2 current AC is deadlocked
                 deadlock_occurred = False
                 curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
@@ -365,6 +373,7 @@ class Aircraft(object):
                 # detect collisions, use CBS function for this since we will use same constraint format as CBS
                 collisions = detect_collisions([path, path2], [self.id, ac2.id], dt)
                 if len(collisions) > 0 and not ac2.planned_t:
+                    no_collisions = False
                     # extract first collision
                     collision = collisions[0]
                     constraints = []
@@ -392,6 +401,9 @@ class Aircraft(object):
                         right_of_way = True
                         # self has to move, so we can consider it planned for this timestep
                         self.planned_t = True
+                        # we need to replan in this situation since the path from self might collide with paths of
+                        # already looped AC which did'nt have any collisions
+                        replan_right_of_way = True
 
                     # if no right of way situation occurred
                     else:
@@ -472,7 +484,7 @@ class Aircraft(object):
 
                         # if everything is equal, determine arbitrary
                         elif bid_self == bid_ac2 and cost_self == cost_ac2:
-                            if random.random() < 0.5:
+                            if random.random() < 1:
                                 self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
                                     else self.budget - bid_self
                                 # indicate that the planning of AC2 is done for this timestep
@@ -489,6 +501,39 @@ class Aircraft(object):
                         self.path_to_goal = path_self[1:]
                         next_pos_losing = path_self[1][0]
                         self.from_to = [path_self[0][0], next_pos_losing]
+                        # TODO: if there are still collisions, this could be due to a inheritance problem here
+                        # add the constraint to the ACs constraints list
+                        constraints_self = self.constraints
+                        for constrnt in constraints:
+                            if constrnt['acid'] == self.id:
+                                constraints_self.append(constrnt)
+                        self.constraints = constraints_self.copy()
+
+                        # check whether we need to replan
+                        if replan_right_of_way:
+                            self.planned_t = False
+                            # we need to check whether path_self doesn't collide with other ac paths
+                            index_ac2 = observed_ac.index(ac2)
+                            for i in range(index_ac2 + 1):
+                                # extract corresponding ac from observed_ac
+                                ac22 = observed_ac[i]
+                                if ac22.id != self.id:
+                                    # determine ac22 current position and path for next 2 timesteps
+                                    curr_pos_ac22 = ac22.from_to[0] if ac22.from_to[0] != 0 else ac22.start
+                                    path_ac22 = [(curr_pos_ac22, t)] + ac22.path_to_goal[:2]
+                                    # ac22 should have a path already; so no need to check the length of path22
+                                    path_self_short = [(curr_pos_self, t)] + self.path_to_goal[:2]
+                                    # detect if there are collisions
+                                    new_collisions = detect_collisions([path_self_short, path_ac22],
+                                                                       [self.id, ac22.id], dt)
+                                    # if there are collisions, replan
+                                    if len(new_collisions) > 0:
+                                        exp_nodes, deadlcks, deadlock_ac = self.perform_ind_planning(
+                                            observed_ac[:index_ac2 + 1], t, dt, heuristics)
+                                        expanded_nodes += exp_nodes
+                                        if len(deadlock_ac) > 0:
+                                            deadlocks += deadlcks
+                                            return expanded_nodes, deadlocks, deadlock_ac
                         # update the current path of the AC. Used for determining performance indicators
                         curr_path = self.current_path
                         # if AC already has a path planned
@@ -505,13 +550,7 @@ class Aircraft(object):
                             self.current_path = path_self.copy()
                         # compute travelling time and distance performance indiactors
                         self.compute_time_distance()
-                        # TODO: if there are still collisions, this could be due to a inheritance problem here
-                        # add the constraint to the ACs constraints list
-                        constraints_self = self.constraints
-                        for constrnt in constraints:
-                            if constrnt['acid'] == self.id:
-                                constraints_self.append(constrnt)
-                        self.constraints = constraints_self.copy()
+
 
                     elif ac2.planned_t:
                         # if self wins biddding war, ac2 has to adjust path
@@ -587,7 +626,7 @@ class Aircraft(object):
                     # over AC
 
                     index_ac2 = observed_ac.index(ac2)
-                    for i in range(index_ac2):
+                    for i in range(index_ac2 + 1):
                         # extract corresponding ac from observed_ac
                         ac22 = observed_ac[i]
                         if ac22.id != self.id:
@@ -600,7 +639,11 @@ class Aircraft(object):
                             new_collisions = detect_collisions([updated_path_short, path_ac22], [self.id, ac22.id], dt)
                             # if there are collisions, replan
                             if len(new_collisions) > 0:
-                                self.perform_ind_planning(observed_ac[:index_ac2+1], t, dt, heuristics)
+                                exp_nodes, deadlcks, deadlock_ac = self.perform_ind_planning(observed_ac[:index_ac2+1], t, dt, heuristics)
+                                expanded_nodes += exp_nodes
+                                if len(deadlock_ac) > 0:
+                                    deadlocks += deadlcks
+                                    return expanded_nodes, deadlocks, deadlock_ac
 
                     # the program gets to this line if there were no collisions with the other ac
                     # if the loop is finished without collisions the current path and necessary instance variables
