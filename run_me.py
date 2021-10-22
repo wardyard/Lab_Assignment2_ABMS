@@ -29,7 +29,7 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = True  # pygame visualization
+visualization = False  # pygame visualization
 visualization_speed = 0.1  # set at 0.1 as default
 
 
@@ -145,7 +145,7 @@ def create_graph(nodes_dict, edges_dict, plot_graph=True):
 # =============================================================================
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 1
+NUM_OF_SIMULATIONS = 20
 
 nodes_dict, edges_dict, start_and_goal_locations = import_layout(nodes_file, edges_file)
 graph = create_graph(nodes_dict, edges_dict, plot_graph)
@@ -186,7 +186,7 @@ for node in nodes_dict:
 
 # for individual planning: specify the size of the observation area
 # 1 means that it will only see its neighboring nodes
-# 2 means that it will account for neighoring nodes and their neighbors
+# 2 means that it will account for neighboring nodes and their neighbors
 ind_obs_size = 2
 
 # =============================================================================
@@ -234,7 +234,7 @@ for i in range(NUM_OF_SIMULATIONS):
                                              "heading": ac.heading}
             escape_pressed = map_running(map_properties, current_states, t)
             timer.sleep(visualization_speed)
-        '''
+
         # Spawn aircraft for this timestep at random but make sure to not spawn them on another aircraft
         # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
         # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
@@ -283,9 +283,6 @@ for i in range(NUM_OF_SIMULATIONS):
                 aircraft_lst.append(ac)
                 spawned_ac += 1
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
-
-
-        '''
         '''
          aircraft_lst = [
             Aircraft(1, 'A', 37, 36, 1.5, nodes_dict),
@@ -304,7 +301,7 @@ for i in range(NUM_OF_SIMULATIONS):
             Aircraft(14, 'A', 37, 98, 12.5, nodes_dict)
         ]
         '''
-
+        '''
         if t==1.5:
             aircraft_lst.append(Aircraft(1, 'A', 37, 36, 1.5, nodes_dict))
         if t == 2:
@@ -333,7 +330,18 @@ for i in range(NUM_OF_SIMULATIONS):
             aircraft_lst.append(Aircraft(13, 'A', 38, 98, 12, nodes_dict))
         if t==12.5:
             aircraft_lst.append(Aircraft(14, 'A', 37, 98, 12.5, nodes_dict))
-
+        '''
+        '''
+        if t == 1:
+            aircraft_lst.append(Aircraft(1, 'D', 6, 1,t, nodes_dict))
+            aircraft_lst.append(Aircraft(4, 'D', 3, 2,t, nodes_dict))
+        if t==1.5:
+            aircraft_lst.append(Aircraft(2, 'D', 6, 1,t, nodes_dict))
+            aircraft_lst.append(Aircraft(5, 'D', 3, 2,t, nodes_dict))
+        if t==2:
+            aircraft_lst.append(Aircraft(3, 'D', 6, 1,t, nodes_dict))
+            aircraft_lst.append(Aircraft(6, 'D', 3, 2,t, nodes_dict))
+        '''
         # Do planning
         if planner == "Independent":
             time_delta, exp_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)

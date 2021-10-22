@@ -8,9 +8,10 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
     deadlocks = 0
     expanded_nodes = 0  # KPI
     start = time.perf_counter_ns()
-    # extract dictionary with nodeID keys and corresponding AC on this node
-    radar_dict = radar(aircraft_lst)
+
     for ac in aircraft_lst:
+        # extract dictionary with nodeID keys and corresponding AC on this node
+        radar_dict = radar(aircraft_lst)
         create_observation_space(ac, radar_dict, nodes_dict, observation_size)
         observed_ac = ac.scan()
         exp_nodes, deadlcks, deadlock_ac = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
