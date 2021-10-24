@@ -113,6 +113,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 # append ACID of this AC to the acids list
                 root['acids'].append(ac.id)
             else:
+                # TODO: remove path etc from root?
                 aircraft_list.remove(ac)
                 num_of_deadlocks += 1
                 raise BaseException('Deadlock CBS independent paths')
@@ -179,7 +180,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 'constraints': q_constraints,
                 'paths': p['paths'].copy(),
                 'collisions': [],
-                'acids': p['acids']
+                'acids': p['acids'].copy() # added 24 oct
             }
 
             # find out the aircraft ID of the aircraft in the constraint
@@ -229,14 +230,25 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     # replace the path corresponding to this AC
                     q['paths'][index] = q_path
                     print('14) q[paths] after update: ' + str(q['paths']))
+                    # TODO: goes wrong here. Too much paths in q['paths']
                     q['collisions'] = detect_collisions(q['paths'], q['acids'], dt)
                     q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
+                    aircr.compute_time_distance()
                 else:
+                    # unable to find path for this AC. It shouldn't be removed tho, but this node should get a really high cost
+                    # added 24 oct
+                    print('No path found for ACID: ' + str(q_acid))
+                    # put a huge cost on this move
+                    q['cost'] = 1000000
+                    '''
+                    index_q_acid = q['acids'].index(q_acid)
                     q['acids'].remove(q_acid)
-                    q['paths'].remove(q['paths'][q_acid])
+                    # TODO: index out of range here
+                    q['paths'].remove(q['paths'][index_q_acid])
                     aircraft_list.remove(aircr)
                     num_of_deadlocks += 1
+                    '''
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
 

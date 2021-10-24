@@ -29,8 +29,8 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = True  # pygame visualization
-visualization_speed = 1  # set at 0.1 as default
+visualization = False  # pygame visualization
+visualization_speed = 0.1  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -145,7 +145,7 @@ def create_graph(nodes_dict, edges_dict, plot_graph=True):
 # =============================================================================
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 60
+NUM_OF_SIMULATIONS = 20
 
 nodes_dict, edges_dict, start_and_goal_locations = import_layout(nodes_file, edges_file)
 graph = create_graph(nodes_dict, edges_dict, plot_graph)
@@ -168,7 +168,12 @@ df_kpi = pd.DataFrame({'travel_t_avg': [],  # average travel time for 1 simulati
                        'exp_nodes': [],     # total amount of expanded nodes for 1 simulation
                        'deadlocks': []})    # amount of deadlocks for 1 simulation
 
-
+# initialize list for stabilization of coefficients of variation
+travel_time_cv = []
+travel_distance_cv = []
+travel_dt_ratio_cv = []
+throughput_cv = []
+computation_t_cv = []
 
 # gate, departing rwy and arriving rwy node IDs, used for random AC spawning
 gates_ids = []  # will contain IDs of gate nodes
@@ -193,6 +198,8 @@ ind_obs_size = 2
 # 1. While loop and visualization
 # =============================================================================
 for i in range(NUM_OF_SIMULATIONS):
+    if visualization:
+        map_properties = map_initialization(nodes_dict, edges_dict)  # visualization properties
     # Start of while loop
     running = True
     escape_pressed = False
@@ -234,7 +241,7 @@ for i in range(NUM_OF_SIMULATIONS):
                                              "heading": ac.heading}
             escape_pressed = map_running(map_properties, current_states, t)
             timer.sleep(visualization_speed)
-        '''
+
         # Spawn aircraft for this timestep at random but make sure to not spawn them on another aircraft
         # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
         # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
@@ -284,8 +291,8 @@ for i in range(NUM_OF_SIMULATIONS):
                 aircraft_lst.append(ac)
                 spawned_ac += 1
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
-        '''
 
+        '''
         if t==0:
             aircraft_lst.append(Aircraft(1, 'D', 36, 1, t, nodes_dict))
         if t == 1:
@@ -302,7 +309,7 @@ for i in range(NUM_OF_SIMULATIONS):
             aircraft_lst.append(Aircraft(7, 'D', 36, 1, t, nodes_dict))
         if t==8:
             aircraft_lst.append(Aircraft(8, 'A', 37, 34, t, nodes_dict))
-
+        '''
 
 
         # Do planning
@@ -425,6 +432,13 @@ for i in range(NUM_OF_SIMULATIONS):
                                      expanded_nodes,
                                      deadlocks]
 
+    # coefficient of variation
+    travel_time_cv.append(np.std(df_kpi['travel_t_avg'])/np.mean(df_kpi['travel_t_avg']))
+    travel_distance_cv.append(np.std(df_kpi['travel_d_avg'])/np.mean(df_kpi['travel_d_avg']))
+    travel_dt_ratio_cv.append(np.std(df_kpi['travel_td_avg'])/np.mean(df_kpi['travel_td_avg']))
+    throughput_cv.append(np.std(df_kpi['throughput_avg'])/np.mean(df_kpi['throughput_avg']))
+    computation_t_cv.append(np.std(df_kpi['comput_t_avg'])/np.mean(df_kpi['comput_t_avg']))
+
     # print results
     print("Average travel time: " + str(avg_travel_time) + ", standard deviation: " + str(std_travel_time))
     print("Average travel distance: " + str(avg_travel_distance) + ", standard deviation: " + str(std_travel_distance))
@@ -460,3 +474,20 @@ for i in range(NUM_OF_SIMULATIONS):
 # Export results to .csv file
 ########################################################################################################################
 df_kpi.to_csv("results.csv")
+
+########################################################################################################################
+# Statistical analysis
+########################################################################################################################
+
+
+coeffs_variation = np.transpose([travel_time_cv, travel_distance_cv, travel_dt_ratio_cv, throughput_cv, computation_t_cv])
+
+fig1 = plt.figure()
+plt.plot(coeffs_variation, label=['avg travel time', 'avg travel distance', 'avg distance/time ratio', 'avg throughput', 'avg computation time'])
+plt.xlabel('Episode')
+plt.ylabel('Coefficient of variation')
+plt.title('Evolution of coefficient of variation')
+plt.legend()
+plt.show()
+
+a= 5
