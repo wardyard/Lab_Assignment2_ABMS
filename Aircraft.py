@@ -407,7 +407,6 @@ class Aircraft(object):
                         self.planned_t = True
                         # we need to replan in this situation since the path from self might collide with paths of
                         # already looped AC which did'nt have any collisions
-                        self.right_of_way_t = True
 
                     # if no right of way situation occurred
                     else:
@@ -513,31 +512,32 @@ class Aircraft(object):
                                 constraints_self.append(constrnt)
                         self.constraints = constraints_self.copy()
 
-                        # check whether we need to replan
-                        if self.right_of_way_t:
-                            self.planned_t = False
-                            # we need to check whether path_self doesn't collide with other ac paths
-                            index_ac2 = observed_ac.index(ac2)
-                            for i in range(index_ac2 + 1):
-                                # extract corresponding ac from observed_ac
-                                ac22 = observed_ac[i]
-                                if ac22.id != self.id:
-                                    # determine ac22 current position and path for next 2 timesteps
-                                    curr_pos_ac22 = ac22.from_to[0] if ac22.from_to[0] != 0 else ac22.start
-                                    path_ac22 = [(curr_pos_ac22, t)] + ac22.path_to_goal[:2]
-                                    # ac22 should have a path already; so no need to check the length of path22
-                                    path_self_short = [(curr_pos_self, t)] + self.path_to_goal[:2]
-                                    # detect if there are collisions
-                                    new_collisions = detect_collisions([path_self_short, path_ac22],
-                                                                       [self.id, ac22.id], dt)
-                                    # if there are collisions, replan
-                                    if len(new_collisions) > 0:
-                                        exp_nodes, deadlcks, deadlock_ac = self.perform_ind_planning(
-                                            observed_ac[:index_ac2 + 1], t, dt, heuristics)
-                                        expanded_nodes += exp_nodes
-                                        if len(deadlock_ac) > 0:
-                                            deadlocks += deadlcks
-                                            return expanded_nodes, deadlocks, deadlock_ac
+                        # replan for the AC which have already passed in observed_ac
+                        # this is done unconditionally 
+                        #if self.right_of_way_t:
+                        self.planned_t = False
+                        # we need to check whether path_self doesn't collide with other ac paths
+                        index_ac2 = observed_ac.index(ac2)
+                        for i in range(index_ac2 + 1):
+                            # extract corresponding ac from observed_ac
+                            ac22 = observed_ac[i]
+                            if ac22.id != self.id:
+                                # determine ac22 current position and path for next 2 timesteps
+                                curr_pos_ac22 = ac22.from_to[0] if ac22.from_to[0] != 0 else ac22.start
+                                path_ac22 = [(curr_pos_ac22, t)] + ac22.path_to_goal[:2]
+                                # ac22 should have a path already; so no need to check the length of path22
+                                path_self_short = [(curr_pos_self, t)] + self.path_to_goal[:2]
+                                # detect if there are collisions
+                                new_collisions = detect_collisions([path_self_short, path_ac22],
+                                                                   [self.id, ac22.id], dt)
+                                # if there are collisions, replan
+                                if len(new_collisions) > 0:
+                                    exp_nodes, deadlcks, deadlock_ac = self.perform_ind_planning(
+                                        observed_ac[:index_ac2 + 1], t, dt, heuristics)
+                                    expanded_nodes += exp_nodes
+                                    if len(deadlock_ac) > 0:
+                                        deadlocks += deadlcks
+                                        return expanded_nodes, deadlocks, deadlock_ac
                         # update the current path of the AC. Used for determining performance indicators
                         curr_path = self.current_path
                         # if AC already has a path planned

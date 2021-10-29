@@ -114,7 +114,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 root['acids'].append(ac.id)
             else:
                 # TODO: remove path etc from root?
-                aircraft_list.remove(ac)
+                ac.status = "deadlocked"
                 num_of_deadlocks += 1
                 raise BaseException('Deadlock CBS independent paths')
 
