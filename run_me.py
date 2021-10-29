@@ -24,13 +24,13 @@ nodes_file = "nodes.xlsx"  # xlsx file with for each node: id, x_pos, y_pos, typ
 edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (node), length
 
 # Parameters that can be changed:
-simulation_time = 20
+simulation_time = 30
 planner = "Individual"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = False  # pygame visualization
-visualization_speed = 0.1  # set at 0.1 as default
+visualization = True  # pygame visualization
+visualization_speed = 0.5  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -145,7 +145,10 @@ def create_graph(nodes_dict, edges_dict, plot_graph=True):
 # =============================================================================
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 20
+NUM_OF_SIMULATIONS = 1
+
+# specify arrival rate
+arrival_rate = "high"
 
 nodes_dict, edges_dict, start_and_goal_locations = import_layout(nodes_file, edges_file)
 graph = create_graph(nodes_dict, edges_dict, plot_graph)
@@ -248,7 +251,15 @@ for i in range(NUM_OF_SIMULATIONS):
         # are located at one of these positions
         # TODO: should we maybe try and spawn more than 1 AC at a single timestep?
         # TODO: in this case, same arrival time constraints need to be constructed as well to prevent 2 AC spawning at rwy_a
-        if random.random() < 0.35:
+
+        if arrival_rate == "high":  # TODO: find appropriate values
+            threshold = 0.35
+        elif arrival_rate == "low":
+            threshold = 0.2
+        else:
+            raise BaseException('no correct arrival rate specified')
+        '''
+        if random.random() < threshold:
             if random.random() < 0.5:  # departing AC
                 # determine at which gate the AC starts
                 start_node_index = random.randint(0, len(gates_ids) - 1)
@@ -291,25 +302,21 @@ for i in range(NUM_OF_SIMULATIONS):
                 aircraft_lst.append(ac)
                 spawned_ac += 1
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
+        '''
 
-        '''
         if t==0:
-            aircraft_lst.append(Aircraft(1, 'D', 36, 1, t, nodes_dict))
+            aircraft_lst.append(Aircraft(1, 'D', 35, 1, t, nodes_dict))
         if t == 1:
-            aircraft_lst.append(Aircraft(2, 'A', 38, 34, t, nodes_dict))
-        if t==3:
-            aircraft_lst.append(Aircraft(3, 'D', 36, 2, t, nodes_dict))
+            aircraft_lst.append(Aircraft(2, 'D', 36, 2, t, nodes_dict))
+        if t==1.5:
+            aircraft_lst.append(Aircraft(3, 'D', 34, 1, t, nodes_dict))
+        if t==2.5:
+            aircraft_lst.append(Aircraft(4, 'D', 97, 2, t, nodes_dict))
         if t==4:
-            aircraft_lst.append(Aircraft(4, 'D', 35, 1, t, nodes_dict))
-        if t==4.5:
-            aircraft_lst.append(Aircraft(5, 'D', 34, 2, t, nodes_dict))
-        if t==6:
-            aircraft_lst.append(Aircraft(6, 'A', 37, 36, t, nodes_dict))
-        if t==6.5:
-            aircraft_lst.append(Aircraft(7, 'D', 36, 1, t, nodes_dict))
-        if t==8:
-            aircraft_lst.append(Aircraft(8, 'A', 37, 34, t, nodes_dict))
-        '''
+            aircraft_lst.append(Aircraft(5, 'D', 11, 13, t, nodes_dict))
+        if t==5:
+            aircraft_lst.append(Aircraft(6, 'D', 97, 1, t, nodes_dict))
+
 
 
         # Do planning
@@ -473,13 +480,29 @@ for i in range(NUM_OF_SIMULATIONS):
 ########################################################################################################################
 # Export results to .csv file
 ########################################################################################################################
-df_kpi.to_csv("results.csv")
+if planner == "Prioritized":
+    if arrival_rate == "low":
+        output_file = "results_prio_lo.csv"
+    else:
+        output_file = "results_prio_hi.csv"
+elif planner == "CBS":
+    if arrival_rate == "low":
+        output_file = "results_cbs_lo.csv"
+    else:
+        output_file = "results_cbs_hi.csv"
+elif planner == "Individual":
+    if arrival_rate =="low":
+        output_file = "results_ind_lo.csv"
+    else:
+        output_file = "results_ind_hi.csv"
+
+df_kpi.to_csv(output_file)
 
 ########################################################################################################################
 # Statistical analysis
 ########################################################################################################################
 
-
+# transpose for plotting
 coeffs_variation = np.transpose([travel_time_cv, travel_distance_cv, travel_dt_ratio_cv, throughput_cv, computation_t_cv])
 
 fig1 = plt.figure()
@@ -490,4 +513,5 @@ plt.title('Evolution of coefficient of variation')
 plt.legend()
 plt.show()
 
+# placeholder for debugging such that we can set breakpoint here
 a= 5

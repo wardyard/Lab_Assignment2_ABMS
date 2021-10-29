@@ -17,11 +17,10 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
             observed_ac = ac.scan()
             exp_nodes, deadlcks, deadlock_ac = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
             # if deadlock situations occurred, remove these AC from the aircraft list
-            # TODO: check if this doesn't fuck up anything
             if len(deadlock_ac) > 0:
                 deadlocks += deadlcks
                 for locked_ac in deadlock_ac:
-                    aircraft_lst.remove(locked_ac)
+                    locked_ac.status = "deadlocked"
             expanded_nodes += exp_nodes
 
     stop = time.perf_counter_ns()
