@@ -51,6 +51,8 @@ class Aircraft(object):
         self.budget = 100
         self.constraints = []   # constraints regarding this AC
         self.planned_t = False  # AC already has been planned for timestep t
+        self.right_of_way_t = False     # AC had to give right of way. this causes replanning for this AC even if it is
+                                        # planned_t
 
     def get_heading(self, xy_start, xy_next):
         """
@@ -319,8 +321,9 @@ class Aircraft(object):
         deadlock_ac = []
 
         # if this AC was already treated and it lost to another AC
-        if self.planned_t:
+        if self.planned_t and not self.right_of_way_t:
             return 0, 0, deadlock_ac
+        self.planned_t = False
         # if the AC doesn't have a path yet, calculate it independently
         curr_pos_self = self.from_to[0] if self.from_to[0] != 0 else self.start
         if len(self.path_to_goal) == 0:
@@ -344,7 +347,7 @@ class Aircraft(object):
             if ac2.id != self.id and not self.planned_t:
                 # denotes the need for replanning in a right of way situation. This needs to be done if e.g another
                 # AC in aircraft list did not have collisions, but the alternative path from self would collide with it
-                replan_right_of_way = False
+                #replan_right_of_way = False
                 # denotes whether one of the 2 current AC is deadlocked
                 deadlock_occurred = False
                 curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
@@ -392,6 +395,7 @@ class Aircraft(object):
                         right_of_way = True
                         # AC2 has to move, so we can consider it planned for this timestep
                         ac2.planned_t = True
+                        ac2.right_of_way_t = True
                     elif len(self.nodes_dict[curr_pos_self]["neighbors"]) > 2 and len(self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
                         # ac2 is located between intersections and self is located at intersection and heading into ac2
                         # impose constraints on self such that self HAS to move away from intersection
@@ -403,7 +407,7 @@ class Aircraft(object):
                         self.planned_t = True
                         # we need to replan in this situation since the path from self might collide with paths of
                         # already looped AC which did'nt have any collisions
-                        replan_right_of_way = True
+                        self.right_of_way_t = True
 
                     # if no right of way situation occurred
                     else:
@@ -510,7 +514,7 @@ class Aircraft(object):
                         self.constraints = constraints_self.copy()
 
                         # check whether we need to replan
-                        if replan_right_of_way:
+                        if self.right_of_way_t:
                             self.planned_t = False
                             # we need to check whether path_self doesn't collide with other ac paths
                             index_ac2 = observed_ac.index(ac2)
@@ -550,7 +554,6 @@ class Aircraft(object):
                             self.current_path = path_self.copy()
                         # compute travelling time and distance performance indiactors
                         self.compute_time_distance()
-
 
                     elif ac2.planned_t:
                         # if self wins biddding war, ac2 has to adjust path

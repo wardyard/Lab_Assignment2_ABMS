@@ -30,7 +30,7 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 0.5  # set at 0.1 as default
+visualization_speed = 1  # set at 0.1 as default
 
 
 # %%Function definitions
@@ -302,21 +302,16 @@ for i in range(NUM_OF_SIMULATIONS):
                 aircraft_lst.append(ac)
                 spawned_ac += 1
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
-        '''
 
+        '''
         if t==0:
             aircraft_lst.append(Aircraft(1, 'D', 35, 1, t, nodes_dict))
-        if t == 1:
-            aircraft_lst.append(Aircraft(2, 'D', 36, 2, t, nodes_dict))
-        if t==1.5:
-            aircraft_lst.append(Aircraft(3, 'D', 34, 1, t, nodes_dict))
-        if t==2.5:
-            aircraft_lst.append(Aircraft(4, 'D', 97, 2, t, nodes_dict))
-        if t==4:
-            aircraft_lst.append(Aircraft(5, 'D', 11, 13, t, nodes_dict))
-        if t==5:
-            aircraft_lst.append(Aircraft(6, 'D', 97, 1, t, nodes_dict))
-
+        if t == 0.5:
+            aircraft_lst.append(Aircraft(2, 'D', 34, 2, t, nodes_dict))
+        if t==2:
+            aircraft_lst.append(Aircraft(3, 'A', 37, 34, t, nodes_dict))
+        if t==4.5:
+            aircraft_lst.append(Aircraft(4, 'D', 35, 2, t, nodes_dict))
 
 
         # Do planning
@@ -352,6 +347,7 @@ for i in range(NUM_OF_SIMULATIONS):
             # set the planned_t variable to False, only once per time step!
             for ac in aircraft_lst:
                 ac.planned_t = False
+                ac.right_of_way_t = False
                 if ac.spawntime == t:
                     ac.status = "taxiing"
                     ac.position = nodes_dict[ac.start]["xy_pos"]
