@@ -113,7 +113,6 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 # append ACID of this AC to the acids list
                 root['acids'].append(ac.id)
             else:
-                # TODO: remove path etc from root?
                 ac.status = "deadlocked"
                 num_of_deadlocks += 1
                 raise BaseException('Deadlock CBS independent paths')
@@ -230,7 +229,6 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     # replace the path corresponding to this AC
                     q['paths'][index] = q_path
                     print('14) q[paths] after update: ' + str(q['paths']))
-                    # TODO: goes wrong here. Too much paths in q['paths']
                     q['collisions'] = detect_collisions(q['paths'], q['acids'], dt)
                     q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
@@ -241,14 +239,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     print('No path found for ACID: ' + str(q_acid))
                     # put a huge cost on this move
                     q['cost'] = 1000000
-                    '''
-                    index_q_acid = q['acids'].index(q_acid)
-                    q['acids'].remove(q_acid)
-                    # TODO: index out of range here
-                    q['paths'].remove(q['paths'][index_q_acid])
-                    aircraft_list.remove(aircr)
-                    num_of_deadlocks += 1
-                    '''
+
             else:
                 raise Exception("CBS: no aircraft found in node list with ID: " + str(q_acid))
 
@@ -261,7 +252,6 @@ def detect_collision(path1, path2, dt):
     - vertex collision has the form [[node], timestep]
     - edge collision has the form [[node1, node2], timestep]
     """
-    # TODO: detect artificial collision here when 2 AC are at the departing runway at the same time
     # iterate over longest path to ensure goal collisions are noticed as well
     longest_path = path1 if len(path1) > len(path2) else path2
     for node_time_pair in longest_path:
@@ -282,7 +272,6 @@ def detect_collision(path1, path2, dt):
         # check whether 2 AC will be at departing runway at the same time
         # the collision format will be the same as an edge constraint, but standard_splitting is modified
         # to account for this special type of constraint
-        # TODO: this collision format isn't good. It denotes an edge collision instead of 2 vertex collisions
         elif curr_loc_valid and (loc1 == 1.0 or loc2 == 1.0) and (loc1 == 2.0 or loc2 == 2.0) and loc1 != loc2:
             #print('RUNWAY CONSTRAINT DETECT_COLLISION')
             return [[loc1, loc2], timestep]
@@ -384,7 +373,7 @@ def standard_splitting(collision, dt):
             constraint2 = {'acid': collision['acid2'], 'loc': [loc[1], loc[0]], 'timestep': timestep + dt}
         constraints.append(constraint1)
         constraints.append(constraint2)
-    # TODO: same departure runway constraint
+
     # vertex constraint
     elif len(collision['loc']) == 1:
         constraint1 = {'acid': collision['acid1'], 'loc': loc, 'timestep': timestep}
@@ -417,6 +406,7 @@ def push_node(open_list, node, num_of_generated):
     print("Generate node {}".format(num_of_generated))
     num_of_generated += 1
     return num_of_generated
+
 
 def pop_node(open_list, num_of_expanded):
     """

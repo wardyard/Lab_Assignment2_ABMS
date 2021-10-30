@@ -230,7 +230,6 @@ class Aircraft(object):
                         # once this aircraft has reached its goal
                         constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep, 'acid': self.id})
                     # same departure time constraint
-                    # TODO: check this
                     if node == 2 or node == 1:
                         constraints.append({'spawntime': self.spawntime, 'loc': [1], 'timestep': timestep, 'acid': self.id})
                         constraints.append({'spawntime': self.spawntime, 'loc': [2], 'timestep': timestep, 'acid': self.id})
@@ -311,12 +310,6 @@ class Aircraft(object):
         expanded_nodes = 0
         deadlocks = 0
 
-        # this boolean will be used to indicate that the ac in question didn't notice any collisions with its
-        # observed AC. If this is the case, its next position in its path will be turned into a constraint for the
-        # other ac in its observation space. This should eleminiate the need for replanning at intersevtions
-        # TODO: should we use replanning instead?
-        no_collisions = True
-
         # if there's an aircraft in a deadlock position, it will be added to this list
         deadlock_ac = []
 
@@ -345,9 +338,6 @@ class Aircraft(object):
 
         for ac2 in observed_ac:
             if ac2.id != self.id and not self.planned_t:
-                # denotes the need for replanning in a right of way situation. This needs to be done if e.g another
-                # AC in aircraft list did not have collisions, but the alternative path from self would collide with it
-                #replan_right_of_way = False
                 # denotes whether one of the 2 current AC is deadlocked
                 deadlock_occurred = False
                 curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
@@ -411,19 +401,7 @@ class Aircraft(object):
                     # if no right of way situation occurred
                     else:
                         constraints = standard_splitting(collision, dt)
-                        '''
-                        # we may have a regular collision. Create constraints
-                        loc = collision[0]
-                        timestep = collision[1]
-                        # edge collision
-                        if len(loc) > 1:
-                            constraints.append({'acid': self.id, 'loc': [loc[0], loc[1]], 'timestep': timestep + dt})
-                            constraints.append({'acid': ac2.id, 'loc': [loc[1], loc[0]], 'timestep': timestep + dt})
-                        # vertex collision
-                        elif len(loc) == 1:
-                            constraints.append({'acid': self.id, 'loc': loc, 'timestep': timestep})
-                            constraints.append({'acid': ac2.id, 'loc': loc, 'timestep': timestep})
-                        '''
+
                     # now, plan the paths independently for both AC with the newly added constraints
                     success, path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal, heuristics,
                                                           constraints + self.constraints, t, dt, self.id, True, self)
@@ -504,7 +482,6 @@ class Aircraft(object):
                         self.path_to_goal = path_self[1:]
                         next_pos_losing = path_self[1][0]
                         self.from_to = [path_self[0][0], next_pos_losing]
-                        # TODO: if there are still collisions, this could be due to a inheritance problem here
                         # add the constraint to the ACs constraints list
                         constraints_self = self.constraints
                         for constrnt in constraints:
@@ -513,8 +490,7 @@ class Aircraft(object):
                         self.constraints = constraints_self.copy()
 
                         # replan for the AC which have already passed in observed_ac
-                        # this is done unconditionally 
-                        #if self.right_of_way_t:
+                        # this is done unconditionally
                         self.planned_t = False
                         # we need to check whether path_self doesn't collide with other ac paths
                         index_ac2 = observed_ac.index(ac2)
@@ -545,6 +521,7 @@ class Aircraft(object):
                             # find index in current_path that corresponds to this timestep. Us e filter with lambda
                             # expression to find the tuple corresponding to the current timestep. Then find the index of
                             # this tuple in the current_path
+                            # TODO: something goes wrong here. Current path wasn't updated correctly it seems
                             index_curr_timestep = curr_path.index(
                                 list(filter(lambda node_t_pair: node_t_pair[1] == t in node_t_pair, curr_path))[0])
                             # now change the current_path of the AC from this step onwards into the newly calculated path
@@ -576,7 +553,6 @@ class Aircraft(object):
                             ac2.current_path = path_ac2.copy()
                         # compute travelling time and distance performance indicators
                         ac2.compute_time_distance()
-                        # TODO: if there are still collisions, this could be due to a inheritance problem here
                         # add the constraint to the ACs constraints list
                         constraints_ac2 = ac2.constraints
                         for constrnt in constraints:
@@ -601,7 +577,6 @@ class Aircraft(object):
                     # add constraint which prohibits self from crashing into ac2 at next timestep
                     collision = collisions[0]
                     constraints = standard_splitting(collision, dt)
-                    # TODO: check inheritance
                     self.constraints.append(constraints[0].copy())
 
                     # find alternative path

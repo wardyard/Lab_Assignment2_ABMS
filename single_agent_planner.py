@@ -6,7 +6,7 @@ Consider functions in this file as supporting functions.
 import heapq
 import networkx as nx
 
-# TODO: add constraints for AC which depart at the same timestep from the same runway
+
 def calc_heuristics(graph, nodes_dict):
     """
     Calculates the exact heuristic dict (shortest distance between two nodes) to be used in A* search.
@@ -201,7 +201,6 @@ def is_constrained(curr_node, next_node, next_time, constraint_table):
 
 # added to keep the simple agent astar working until we finish this legit one
 def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time, dt, acid, cbs, ac):
-    # TODO: impose a waiting time limit to recognise deadlocks
     """
     Single agent A* search. Time start can only be the time that an agent is at a node.
     INPUT:
@@ -250,10 +249,17 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             break
         # one extra expanded node
         expanded_nodes += 1
-        # this path is not necessarily complete, but it will be used to forbid 180° turns
-        path = get_path(curr)
+        # determine path so far
+        # TODO: double check this
+        if len(ac.current_path) > 0:
+            index_curr_timestep = ac.current_path.index(list(filter(lambda node_t_pair: node_t_pair[1] == start_time in
+                                                                                        node_t_pair, ac.current_path))[0])
+            path = ac.current_path[:index_curr_timestep] + get_path(curr)
+        else:
+            path = get_path(curr)
+        # current node is the goal node, we've found a path
         if curr['loc'] == goal_node_id and curr['timestep'] >= earliest_goal_timestep:
-            return True, path, expanded_nodes
+            return True, get_path(curr), expanded_nodes
         # no 180 turns are allowed
         for neighbor in nodes_dict[curr['loc']]["neighbors"]:
             # check if moving to this neighbor is constrained, if not, a new child node may be constructed
