@@ -16,6 +16,7 @@ from Aircraft import Aircraft
 from independent import run_independent_planner
 from prioritized import run_prioritized_planner
 from individual import run_individual_planner
+from individual import run_individual_planner2
 from cbs import run_CBS
 
 # %% SET SIMULATION PARAMETERS
@@ -29,7 +30,7 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = False  # pygame visualization
+visualization = True  # pygame visualization
 visualization_speed = 0.5 # set at 0.1 as default
 
 
@@ -304,43 +305,36 @@ for i in range(NUM_OF_SIMULATIONS):
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
 
         '''
-        if t==0.5:
-            aircraft_lst.append(Aircraft(1, 'D', 98, 1, t, nodes_dict))
-        if t == 2.5:
-            aircraft_lst.append(Aircraft(2, 'D', 35, 1, t, nodes_dict))
+        if t==1:
+            aircraft_lst.append(Aircraft(1, 'D', 35, 1, t, nodes_dict))
+        if t == 3:
+            aircraft_lst.append(Aircraft(2, 'A', 37, 35, t, nodes_dict))
         if t==5:
-            aircraft_lst.append(Aircraft(3, 'A', 38, 34, t, nodes_dict))
-        if t==5.5:
-            aircraft_lst.append(Aircraft(4, 'D', 34, 2, t, nodes_dict))
+            aircraft_lst.append(Aircraft(3, 'A', 37, 36, t, nodes_dict))
         if t==6.5:
-            aircraft_lst.append(Aircraft(5, 'A', 38, 98, t, nodes_dict))
-        if t == 7:
-            aircraft_lst.append(Aircraft(6, 'D', 36, 2, t, nodes_dict))
-        if t==7.5:
-            aircraft_lst.append(Aircraft(7, 'A', 37, 34, t, nodes_dict))
-        if t==10.5:
-            aircraft_lst.append(Aircraft(8, 'A', 37, 34, t, nodes_dict))
-        if t==12.5:
-            aircraft_lst.append(Aircraft(9, 'A', 38, 98, t, nodes_dict))
+            aircraft_lst.append(Aircraft(4, 'A', 37, 35, t, nodes_dict))
+        if t==7:
+            aircraft_lst.append(Aircraft(5, 'A', 38, 35, t, nodes_dict))
+        if t == 11.5:
+            aircraft_lst.append(Aircraft(6, 'A', 37, 98, t, nodes_dict))
+        if t==13.5:
+            aircraft_lst.append(Aircraft(7, 'D', 98, 1, t, nodes_dict))
+        if t==14.5:
+            aircraft_lst.append(Aircraft(8, 'D', 98, 2, t, nodes_dict))
+        if t==15:
+            aircraft_lst.append(Aircraft(9, 'D', 97, 2, t, nodes_dict))
+        if t==15.5:
+            aircraft_lst.append(Aircraft(10, 'D', 97, 2, t, nodes_dict))
         if t==16:
-            aircraft_lst.append(Aircraft(10, 'A', 37, 36, t, nodes_dict))
+            aircraft_lst.append(Aircraft(11, 'A', 37, 36, t, nodes_dict))
+        if t==16.5:
+            aircraft_lst.append(Aircraft(12, 'A', 38, 36, t, nodes_dict))
         if t==17.5:
-            aircraft_lst.append(Aircraft(11, 'D', 97, 1, t, nodes_dict))
-        if t==18:
-            aircraft_lst.append(Aircraft(12, 'A', 37, 36, t, nodes_dict))
-        if t==19.5:
             aircraft_lst.append(Aircraft(13, 'D', 36, 1, t, nodes_dict))
-        if t==21.5:
-            aircraft_lst.append(Aircraft(14, 'D', 97, 2, t, nodes_dict))
-        if t==22.5:
-            aircraft_lst.append(Aircraft(15, 'D', 36, 1, t, nodes_dict))
+        if t==18.5:
+            aircraft_lst.append(Aircraft(14, 'A', 37, 97, t, nodes_dict))
         if t==23.5:
-            aircraft_lst.append(Aircraft(16, 'A', 37, 36, t, nodes_dict))
-        if t==26:
-            aircraft_lst.append(Aircraft(17, 'D', 36, 2, t, nodes_dict))
-        if t==28:
-            aircraft_lst.append(Aircraft(18, 'D', 36, 1, t, nodes_dict))
-
+            aircraft_lst.append(Aircraft(15, 'D', 36, 1, t, nodes_dict))
 
 
         # Do planning
@@ -377,11 +371,13 @@ for i in range(NUM_OF_SIMULATIONS):
             for ac in aircraft_lst:
                 ac.planned_t = False
                 ac.right_of_way_t = False
+                ac.loss_list = []   # added for individual2
                 if ac.spawntime == t:
                     ac.status = "taxiing"
                     ac.position = nodes_dict[ac.start]["xy_pos"]
 
-            time_delta, exp_nodes, deadlcks = run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, ind_obs_size)
+            #time_delta, exp_nodes, deadlcks = run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, ind_obs_size)
+            time_delta, exp_nodes, deadlcks = run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, ind_obs_size)
             # expanded nodes performance indicator
             expanded_nodes += exp_nodes
             # computing time performance indicator

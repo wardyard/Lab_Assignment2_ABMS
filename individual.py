@@ -16,7 +16,7 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
             create_observation_space(ac, radar_dict, nodes_dict, observation_size)
             observed_ac = ac.scan()
             exp_nodes, deadlcks, deadlock_ac = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
-            # if deadlock situations occurred, remove these AC from the aircraft list
+            # if deadlock situations occurred, update its state to deadlocked so it won't be planned or moved
             if len(deadlock_ac) > 0:
                 deadlocks += deadlcks
                 for locked_ac in deadlock_ac:
@@ -28,6 +28,58 @@ def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, 
     time_delta = stop - start   # in nanoseconds
     return time_delta, expanded_nodes, deadlocks
 
+
+def run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, observation_size):
+    deadlocks = 0
+    expanded_nodes = 0
+
+    # indicates whether there were still collisions detected when planning for all AC
+    collisions_detected = 0
+    start = time.perf_counter_ns()
+
+    # contains all the ACIDs of the AC which are deadlocked at this timestep
+    deadlock_acids = []
+
+    # run a first planning loop, this should already solve most of the collisions
+    for ac in aircraft_lst:
+        if ac.status == "taxiing":
+            # extract dictionary with nodeID keys and corresponding AC on this node
+            radar_dict = radar(aircraft_lst)
+            create_observation_space(ac, radar_dict, nodes_dict, observation_size)
+            observed_ac = ac.scan()
+            exp_nodes, deadlcks, deadlock_ac, detected_col = ac.perform_ind_planning2(observed_ac, t, dt, heuristics,
+                                                                                      deadlock_acids)
+            collisions_detected += detected_col
+            # if deadlock situations occurred, update its state to deadlocked so it won't be planned or moved
+            if len(deadlock_ac) > 0:
+                deadlocks += deadlcks
+                for locked_ac in deadlock_ac:
+                    locked_ac.status = "deadlocked"
+            expanded_nodes += exp_nodes
+
+    # re run the planning until there are no more collisions between aircraft
+    while collisions_detected > 0:
+        collisions_detected = 0
+        for ac in aircraft_lst:
+            if ac.status == "taxiing":
+                # extract dictionary with nodeID keys and corresponding AC on this node
+                radar_dict = radar(aircraft_lst)
+                create_observation_space(ac, radar_dict, nodes_dict, observation_size)
+                observed_ac = ac.scan()
+                exp_nodes, deadlcks, deadlock_ac, detected_col = ac.perform_ind_planning2(observed_ac, t, dt,
+                                                                                          heuristics, deadlock_acids)
+                collisions_detected += detected_col
+                # if deadlock situations occurred, update its state to deadlocked so it won't be planned or moved
+                if len(deadlock_ac) > 0:
+                    deadlocks += deadlcks
+                    for locked_ac in deadlock_ac:
+                        locked_ac.status = "deadlocked"
+                expanded_nodes += exp_nodes
+
+
+    stop = time.perf_counter_ns()
+    time_delta = stop - start
+    return time_delta, expanded_nodes, deadlocks
 
 def radar(aircraft_list):
     """
