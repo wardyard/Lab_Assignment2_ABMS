@@ -675,7 +675,7 @@ class Aircraft(object):
                         self.current_path = updated_path.copy()
         return expanded_nodes, deadlocks, deadlock_ac
 
-    def perform_ind_planning2(self, observed_ac, t, dt, heuristics, deadlock_acids):
+    def perform_ind_planning2(self, observed_ac, t, dt, heuristics, deadlock_acids, observation_size):
 
         # performance indicators
         expanded_nodes = 0
@@ -711,11 +711,11 @@ class Aircraft(object):
         for ac2 in observed_ac:
             if ac2.id != self.id and ac2 not in deadlock_acids:
                 # determine path for the next 2 timesteps for self
-                path_self = [(curr_pos_self, t)] + self.path_to_goal[:2].copy()
+                path_self = [(curr_pos_self, t)] + self.path_to_goal[:observation_size].copy()
                 # determine current position of ac2
                 curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
                 # path for next 2 timesteps. Included current timestep and position as wel to detect edge constraints
-                path2 = [(curr_pos_ac2, t)] + ac2.path_to_goal[:2].copy()
+                path2 = [(curr_pos_ac2, t)] + ac2.path_to_goal[:observation_size].copy()
                 # if AC2 doesn't have a path yet, plan it
                 if len(path2) == 1 and ac2.status == "taxiing":
                     success, path, exp_nodes = astar(self.nodes_dict, curr_pos_ac2, ac2.goal, heuristics,
@@ -727,7 +727,7 @@ class Aircraft(object):
                         ac2.current_path = path.copy()
                         # performance indicator
                         expanded_nodes += exp_nodes
-                        path2 = [(curr_pos_ac2, t)] + ac2.path_to_goal[:2].copy()
+                        path2 = [(curr_pos_ac2, t)] + ac2.path_to_goal[:observation_size].copy()
                     else:
                         # performance indicator
                         deadlocks += 1
