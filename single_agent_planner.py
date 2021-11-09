@@ -250,10 +250,9 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
         # one extra expanded node
         expanded_nodes += 1
         # determine path so far
-        # TODO: double check this
         if len(ac.current_path) > 0:
-            index_curr_timestep = ac.current_path.index(list(filter(lambda node_t_pair: node_t_pair[1] == start_time in
-                                                                                        node_t_pair, ac.current_path))[0])
+            index_curr_timestep = ac.current_path.index(list(filter(lambda node_t_pair: node_t_pair[1] == start_time
+                                                                    in node_t_pair, ac.current_path))[0])
             path = ac.current_path[:index_curr_timestep] + get_path(curr)
         else:
             path = get_path(curr)

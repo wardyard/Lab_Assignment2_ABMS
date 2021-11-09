@@ -24,7 +24,10 @@ from cbs import run_CBS
 nodes_file = "nodes.xlsx"  # xlsx file with for each node: id, x_pos, y_pos, type
 edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (node), length
 
-# Parameters that can be changed:
+########################################################################################################################
+# Adjustable parameters
+########################################################################################################################
+
 simulation_time = 40
 planner = "Individual"  # choose which planner to use (currently only Independent is implemented)
 
@@ -33,6 +36,18 @@ plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
 visualization_speed = 0.05 # set at 0.1 as default
 
+# number of times the simulation should be ran
+NUM_OF_SIMULATIONS = 10
+
+# specify arrival rate
+arrival_rate = "low"
+
+# for individual planning: specify the size of the observation area
+# 1 means that it will only see its neighboring nodes
+# 2 means that it will account for neighboring nodes and their neighbors
+ind_obs_size = 2
+
+########################################################################################################################
 
 # %%Function definitions
 def import_layout(nodes_file, edges_file):
@@ -145,12 +160,6 @@ def create_graph(nodes_dict, edges_dict, plot_graph=True):
 # 0. Initialization
 # =============================================================================
 
-# number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 10
-
-# specify arrival rate
-arrival_rate = "low"
-
 nodes_dict, edges_dict, start_and_goal_locations = import_layout(nodes_file, edges_file)
 graph = create_graph(nodes_dict, edges_dict, plot_graph)
 heuristics = calc_heuristics(graph, nodes_dict)
@@ -193,11 +202,8 @@ for node in nodes_dict:
     elif node_type == "rwy_d":
         rwy_d_ids.append(node_id)
 
-# for individual planning: specify the size of the observation area
-# 1 means that it will only see its neighboring nodes
-# 2 means that it will account for neighboring nodes and their neighbors
-ind_obs_size = 2
-
+# will contain heat values for every node on the grid
+heatmap = np.zeros(len(nodes_dict))
 # =============================================================================
 # 1. While loop and visualization
 # =============================================================================
@@ -370,8 +376,8 @@ for i in range(NUM_OF_SIMULATIONS):
         elif planner == "Individual":
             # set the planned_t variable to False, only once per time step!
             for ac in aircraft_lst:
-                #ac.planned_t = False
-                #ac.right_of_way_t = False
+                #ac.planned_t = False       # used in earlier version of individual planning
+                #ac.right_of_way_t = False  # used in earlier version of individual planning
                 ac.loss_list = []   # added for individual2
                 if ac.spawntime == t:
                     ac.status = "taxiing"
@@ -419,6 +425,10 @@ for i in range(NUM_OF_SIMULATIONS):
         travel_times.append(ac.travel_time)
         travel_distances.append(ac.path_length)
         ratios.append(ac.time_length_ratio)
+        # for every aircraft, add +1 in heatmap for every node that it has visited
+        # nodes which are visited multiple times get counted as well (e.g. waiting at a node gets counted twice)
+        for node, time in ac.current_path:
+            heatmap[int(node) - 1] += 1
 
     # average out results for this simulation
     avg_travel_time = np.mean(travel_times)
@@ -479,25 +489,7 @@ for i in range(NUM_OF_SIMULATIONS):
     print("Deadlocks: " + str(deadlocks))
     print('Arrived AC: ' + str(sum(throughputs)))
 
-    '''
-    # heat map experiments
-    heatmap = np.zeros(len(nodes_dict))
-    # for every aircraft, add +1 in heatmap for every node that it has visited
-    # TODO: nodes where the A/C is waiting aren't added twice, should this be changed to see bottlenecks?
-    for ac in aircraft_lst:
-        for node in ac.visited_nodes:
-            heatmap[int(node) - 1] += 1
-    max_heat = max(heatmap)
-    # now normalize heatmap with repect to 1. The max_heat value will correspond to 1
-    # the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual
-    # RGB values up until 255
-    heatmap = [(1, 1 - a / float(max_heat), 0) for a in heatmap]
-    # plot the graph (heatmap)
-    plt.figure()
-    node_locations = nx.get_node_attributes(graph, 'xy_pos')
-    nx.draw(graph, node_locations, with_labels=True, node_size=100, font_size=10, node_color=heatmap)
-    plt.show()
-    '''
+
 
 ########################################################################################################################
 # Export results to .csv file
@@ -527,12 +519,26 @@ df_kpi.to_csv(output_file)
 # transpose for plotting
 coeffs_variation = np.transpose([travel_time_cv, travel_distance_cv, travel_dt_ratio_cv, throughput_cv, computation_t_cv])
 
+# plot evolution of coefficient of variation
 fig1 = plt.figure()
 plt.plot(coeffs_variation, label=['avg travel time', 'avg travel distance', 'avg distance/time ratio', 'avg throughput', 'avg computation time'])
 plt.xlabel('Episode')
 plt.ylabel('Coefficient of variation')
 plt.title('Evolution of coefficient of variation')
 plt.legend()
+plt.show()
+
+# plot heat map
+# TODO: find a suitable value for max_heat such that we can compare heatmaps
+max_heat = max(heatmap)
+# now normalize heatmap with respect to 1. The max_heat value will correspond to 1
+# the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual
+# RGB values up until 255
+heatmap = [(1, 1 - a / float(max_heat), 0) for a in heatmap]
+# plot the graph (heatmap)
+plt.figure()
+node_locations = nx.get_node_attributes(graph, 'xy_pos')
+nx.draw(graph, node_locations, with_labels=True, node_size=100, font_size=10, node_color=heatmap)
 plt.show()
 
 # placeholder for debugging such that we can set breakpoint here
