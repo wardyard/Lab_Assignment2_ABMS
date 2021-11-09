@@ -711,6 +711,8 @@ class Aircraft(object):
         # loop over the other AC that this AC can see in its observation space
         for ac2 in observed_ac:
             if ac2.id != self.id and ac2 not in deadlock_acids:
+                # determine path for the next 2 timesteps for self
+                path_self = [(curr_pos_self, t)] + self.path_to_goal[:2].copy()
                 # determine current position of ac2
                 curr_pos_ac2 = ac2.from_to[0] if ac2.from_to[0] != 0 else ac2.start
                 # path for next 2 timesteps. Included current timestep and position as wel to detect edge constraints
@@ -745,21 +747,31 @@ class Aircraft(object):
                         # add constraints to other AC in the observation space to ensure these don't crash into self
                         # when trying to plan their path
                         for acc in observed_ac:
-                            acc.constraints.append({'acid': acc.id, 'loc': [next_node], 'timestep': t + dt})
+                            if acc.id != self.id:
+                                acc.constraints.append({'acid': acc.id, 'loc': [next_node], 'timestep': t + dt})
 
                         # now update the necessary instance variables for the newly defined path
                         self.update_path_variables(self, path_updated, t)
+                        # remove this ACID from the loss list because the collision is resolved
+                        self.loss_list.remove(ac2.id)
+
+                    else:       # deadlock
+                        # TODO: further implement this
+                        raise BaseException('deadlocked for self')
 
                 # AC2 is not in the loss_list of self
                 else:
-                    # detect collisions between the AC4s current paths
-                    collisions = detect_collisions([self.current_path, ac2.current_path], [self.id, ac2.id], dt)
+                    # detect collisions between the AC4s current paths for the next 2 timesteps
+                    # TODO: this was adjustted for bug fixing. We used the complete current paths before
+                    collisions = detect_collisions([path_self, path2], [self.id, ac2.id], dt)
                     if collisions:
                         detected_collisions += 1
                         collision = collisions[0]
                         constraints = []        # constraints resulting from the collision
                         # indicates whether a right of way situation occurred for self
                         right_of_way_happened = False
+                        # denotes whether AC2 is at the intersection. If this is the case, the AC shouldn't be treated
+                        ac2_at_intersection = False
                         # check whether self is at an intersection and ac2 is not
                         if len(self.nodes_dict[curr_pos_self]["neighbors"]) > 2 and len(
                                 self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
@@ -769,7 +781,8 @@ class Aircraft(object):
                             # Check if this is the case:
                             if len(collision['loc']) == 1:
                                 # directly append the constraint to self, because it will have to move
-                                self.constraints.append({'acid': self.id, 'loc': collision['loc'], 'timestep': t + dt})
+                                self.constraints.append({'acid': self.id, 'loc': collision['loc'],
+                                                         'timestep': collision['timestep']})
 
                             # else if we have a head on edge collision, the collision can be solved using 2 constraints
                             # which will force self to move away from the intersection
@@ -784,8 +797,8 @@ class Aircraft(object):
                         # this AC for planning and it will replan itself later on
                         elif len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(
                                   self.nodes_dict[curr_pos_ac2]["neighbors"]) > 2:
-                            # TODO: double check if this actually exist the large for loop
-                            break
+                            right_of_way_happened = True
+                            ac2_at_intersection = True
 
                         # if no intersection situation occurred, determine 1 constraint for each aircraft to solve the
                         # collision. Afterwards, determine paths using new constraints and start bidding war
@@ -820,7 +833,20 @@ class Aircraft(object):
                                 deadlocks += 1
 
                             else:
-                                if self_lost:   # self will be in deadlock. So AC2 will have to adjust path. No bidding happens
+                                if self_lost:   # AC2 will be in deadlock. So it will have to adjust path. No bidding happens
+                                    # update the necessary instance variables
+                                    next_node_self = self.update_path_variables(self, new_path_self, t)
+                                    # append the constraint to self
+                                    constraints_self = self.constraints + constraints
+                                    self.constraints = constraints_self.copy()
+
+                                    # now we add constraints to other AC in observed AC such that they don't collide with self
+                                    for acc in observed_ac:
+                                        if acc.id != self.id:
+                                            acc.constraints.append({'acid': acc.id, 'loc': [next_node_self],
+                                                                     'timestep': t + dt})
+
+                                elif ac2_lost:  # self will be in deadlock, So AC2 needs to adjust path. No bidding happens
                                     # TODO: this code is duplicated, create some functions
                                     # append self to ac2 loss list
                                     ac2.loss_list.append(self.id)
@@ -828,17 +854,7 @@ class Aircraft(object):
                                     constraints_ac2 = ac2.constraints + constraints
                                     ac2.constraints = constraints_ac2.copy()
 
-                                elif ac2_lost:  # AC2 will be in deadlock, So self needs to adjust path. No bidding happens
-                                    # update the necessary instance variables
-                                    next_node_self = self.update_path_variables(self, new_path_self, t)
-
-                                    # now we add constraints to other AC in observed AC such that they don't collide with self
-                                    for acc in observed_ac:
-                                        if acc.id != self.id:
-                                            acc.constraints.append({{'acid': acc.id, 'loc': [next_node_self],
-                                                                     'timestep': t + dt}})
-
-                                else:           # no deadlocks occurred, let's start the bidding war
+                                elif not self_lost and not ac2_lost:           # no deadlocks occurred, let's start the bidding war
                                     # determine costs for each AC
                                     cost_self = (len(new_path_self) - 1 - len(self.path_to_goal))/len(self.path_to_goal)
                                     cost_ac2 = (len(new_path_ac2) - 1 - len(ac2.path_to_goal))/len(ac2.path_to_goal)
@@ -848,9 +864,11 @@ class Aircraft(object):
                                     # compare bids and choose winner
                                     self_won = False
                                     ac2_won = False
+                                    # TODO: update budgets
                                     if bid_self != bid_ac2:
                                         self_won = True if bid_self > bid_ac2 else False
                                         ac2_won = not self_won
+
                                     elif bid_self == bid_ac2:
                                         # determine winner arbitrarily
                                         r = random.random()
@@ -862,6 +880,9 @@ class Aircraft(object):
                                         raise BaseException('Bids are non-numeric')
 
                                     if self_won:
+                                        # update the remaining budget of self
+                                        self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
+                                                        else self.budget - bid_self
                                         # TODO: this code is duplicated, create some functions
                                         # append self to ac2 loss list
                                         ac2.loss_list.append(self.id)
@@ -869,8 +890,14 @@ class Aircraft(object):
                                         constraints_ac2 = ac2.constraints + constraints
                                         ac2.constraints = constraints_ac2.copy()
                                     elif ac2_won:
+                                        # update remaining AC2 budget
+                                        ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 \
+                                                    else ac2.budget - bid_ac2
                                         # update the necessary instance variables
                                         next_node_self = self.update_path_variables(self, new_path_self, t)
+                                        # append the constraint to self
+                                        constraints_self = self.constraints + constraints
+                                        self.constraints = constraints_self.copy()
 
                                         # now we add constraints to other AC in observed AC such that they don't collide with self
                                         for acc in observed_ac:
@@ -882,7 +909,7 @@ class Aircraft(object):
 
                         # right_of_way_happened is True if self is at the intersection. Self will have to adjust without
                         # bidding
-                        elif right_of_way_happened:
+                        elif right_of_way_happened and not ac2_at_intersection:
                             # plan new path for self with extra constraints
                             success, new_path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal,
                                                                       heuristics, self.constraints + constraints, t, dt,

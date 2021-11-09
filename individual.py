@@ -60,6 +60,10 @@ def run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, observa
     # re run the planning until there are no more collisions between aircraft
     while collisions_detected > 0:
         collisions_detected = 0
+        # set loss lists for current timestep to an empty list again
+        # TODO: this was done for debugging purposes, douvle check this
+        #for acc in aircraft_lst:
+        #    acc.loss_list = []
         for ac in aircraft_lst:
             if ac.status == "taxiing":
                 # extract dictionary with nodeID keys and corresponding AC on this node
