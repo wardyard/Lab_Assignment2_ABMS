@@ -370,8 +370,8 @@ for i in range(NUM_OF_SIMULATIONS):
         elif planner == "Individual":
             # set the planned_t variable to False, only once per time step!
             for ac in aircraft_lst:
-                ac.planned_t = False
-                ac.right_of_way_t = False
+                #ac.planned_t = False
+                #ac.right_of_way_t = False
                 ac.loss_list = []   # added for individual2
                 if ac.spawntime == t:
                     ac.status = "taxiing"
@@ -475,7 +475,7 @@ for i in range(NUM_OF_SIMULATIONS):
     print("Average throughput: " + str(avg_throughput))
     print("Average throughput per " + str(interval) + " seconds: " + str(avg_throughput_interval))
     print("Average computing time: " + str(avg_computing_time) + ' nanoseconds')
-    print("Expanded nodes: " + str(expanded_nodes))  # TODO: this gives 0
+    print("Expanded nodes: " + str(expanded_nodes))
     print("Deadlocks: " + str(deadlocks))
     print('Arrived AC: ' + str(sum(throughputs)))
 

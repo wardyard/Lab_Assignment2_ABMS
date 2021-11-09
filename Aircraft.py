@@ -50,8 +50,8 @@ class Aircraft(object):
         # TODO: find suitable value
         self.budget = 100
         self.constraints = []   # constraints regarding this AC
-        self.planned_t = False  # AC already has been planned for timestep t
-        self.right_of_way_t = False     # AC had to give right of way. this causes replanning for this AC even if it is
+        #self.planned_t = False  # AC already has been planned for timestep t
+        #self.right_of_way_t = False     # AC had to give right of way. this causes replanning for this AC even if it is
                                         # planned_t
         self.loss_list = []     # added for individual2. List will contain IDs of which the AC has lost in a bidding war
                                 # note: only ACIDS get added if this AC was ac2 in the main individual loop
@@ -173,7 +173,6 @@ class Aircraft(object):
         return exp_nodes
 
     def plan_prioritized(self, nodes_dict, edges_dict, heuristics, constraints, dt, t):
-        # TODO: remove AC in deadlock from map
         """
         Plans path for taxiing aircraft where constraints are constructed on the go in terms of priority
         Args:
@@ -227,7 +226,7 @@ class Aircraft(object):
                     if not timestep <= self.spawntime + dt:
                         # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
                         # print('timestep: ' + str(timestep))
-                        previous_node = path[int((1/dt) * timestep - (1/dt) * self.spawntime - 1)][0]     # TODO: double check this, gave errors
+                        previous_node = path[int((1/dt) * timestep - (1/dt) * self.spawntime - 1)][0]
                         # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can be removed
                         # once this aircraft has reached its goal
                         constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep, 'acid': self.id})
@@ -756,13 +755,11 @@ class Aircraft(object):
                         self.loss_list.remove(ac2.id)
 
                     else:       # deadlock
-                        # TODO: further implement this
                         raise BaseException('deadlocked for self')
 
                 # AC2 is not in the loss_list of self
                 else:
                     # detect collisions between the AC4s current paths for the next 2 timesteps
-                    # TODO: this was adjustted for bug fixing. We used the complete current paths before
                     collisions = detect_collisions([path_self, path2], [self.id, ac2.id], dt)
                     if collisions:
                         detected_collisions += 1
@@ -828,9 +825,11 @@ class Aircraft(object):
 
                             # both AC are deadlocked?
                             if self_lost and ac2_lost:
-                                # TODO: they're both in a deadlock here. Set self as deadlocked?
-                                raise BaseException('both AC are in deadlock. Implement some more code here')
                                 deadlocks += 1
+                                deadlock_acids.append(self.id)
+                                deadlock_ac.append(self)
+                                # TODO: should something else happen for a deadlock situation?
+                                return expanded_nodes, deadlocks, deadlock_ac, detected_collisions
 
                             else:
                                 if self_lost:   # AC2 will be in deadlock. So it will have to adjust path. No bidding happens
@@ -847,12 +846,8 @@ class Aircraft(object):
                                                                      'timestep': t + dt})
 
                                 elif ac2_lost:  # self will be in deadlock, So AC2 needs to adjust path. No bidding happens
-                                    # TODO: this code is duplicated, create some functions
-                                    # append self to ac2 loss list
-                                    ac2.loss_list.append(self.id)
-                                    # append constraints to AC2
-                                    constraints_ac2 = ac2.constraints + constraints
-                                    ac2.constraints = constraints_ac2.copy()
+                                    # append self to loss list and update AC2 constraints
+                                    ac2.update_loss_list_constraints(ac2, self, constraints)
 
                                 elif not self_lost and not ac2_lost:           # no deadlocks occurred, let's start the bidding war
                                     # determine costs for each AC
@@ -864,7 +859,6 @@ class Aircraft(object):
                                     # compare bids and choose winner
                                     self_won = False
                                     ac2_won = False
-                                    # TODO: update budgets
                                     if bid_self != bid_ac2:
                                         self_won = True if bid_self > bid_ac2 else False
                                         ac2_won = not self_won
@@ -883,12 +877,9 @@ class Aircraft(object):
                                         # update the remaining budget of self
                                         self.budget = self.budget - 1.1 * bid_ac2 if 1.1 * bid_ac2 < bid_self \
                                                         else self.budget - bid_self
-                                        # TODO: this code is duplicated, create some functions
-                                        # append self to ac2 loss list
-                                        ac2.loss_list.append(self.id)
-                                        # append constraints to AC2
-                                        constraints_ac2 = ac2.constraints + constraints
-                                        ac2.constraints = constraints_ac2.copy()
+                                        # append self to loss list and update AC2 constraints
+                                        ac2.update_loss_list_constraints(ac2, self, constraints)
+
                                     elif ac2_won:
                                         # update remaining AC2 budget
                                         ac2.budget = ac2.budget - 1.1 * bid_self if 1.1 * bid_self < bid_ac2 \
@@ -968,3 +959,25 @@ class Aircraft(object):
             ac.current_path = path.copy()
 
         return next_node
+
+    def update_loss_list_constraints(self, ac_lose, ac_win, constraints):
+        """
+        small function that updates the loss list of AC2 for individual planning. This function gets called when
+        the aircraft other than the one on which the function is called has to adjust its path during individual
+        planning. It also appends constraints to the losing aircraft which it will later use to plan its path in such
+        a way that it doesn't collide with the path of ac_win
+        Args:
+            ac_lose: the losing aircraft (ac2 in perform_ind_planning)
+            ac_win: the winning aircraft (self in perf_ind_planning)
+            constraints: constraints to be appended
+
+        Returns:
+
+        """
+        # append self to ac2 loss list
+        ac_lose.loss_list.append(ac_win.id)
+        # append constraints to AC2
+        constraints_ac_lose = ac_lose.constraints + constraints
+        ac_lose.constraints = constraints_ac_lose.copy()
+
+        return None
