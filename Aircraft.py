@@ -771,7 +771,7 @@ class Aircraft(object):
                         ac2_at_intersection = False
                         # check whether self is at an intersection and ac2 is not
                         if len(self.nodes_dict[curr_pos_self]["neighbors"]) > 2 and len(
-                                self.nodes_dict[curr_pos_ac2]["neighbors"]) == 2:
+                                self.nodes_dict[curr_pos_ac2]["neighbors"]) <= 2:
                             right_of_way_happened = True
                             # if self and ac2 want to travel in the same direction, the collision will be a vertex collision.
                             # This collision can be solved using only 1 constraint.
@@ -792,7 +792,7 @@ class Aircraft(object):
 
                         # now check whether ac2 is at an intersection and sef is not. If this is the case, we can skip
                         # this AC for planning and it will replan itself later on
-                        elif len(self.nodes_dict[curr_pos_self]["neighbors"]) == 2 and len(
+                        elif len(self.nodes_dict[curr_pos_self]["neighbors"]) <= 2 and len(
                                   self.nodes_dict[curr_pos_ac2]["neighbors"]) > 2:
                             right_of_way_happened = True
                             ac2_at_intersection = True
