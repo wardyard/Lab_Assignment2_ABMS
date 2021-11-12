@@ -29,15 +29,15 @@ edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (nod
 ########################################################################################################################
 
 simulation_time = 40
-planner = "CBS"  # choose which planner to use (currently only Independent is implemented)
+planner = "Prioritized"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = True  # pygame visualization
+visualization = False  # pygame visualization
 visualization_speed = 0.05 # set at 0.1 as default
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 5
+NUM_OF_SIMULATIONS = 200
 
 # specify arrival rate
 arrival_rate = "high"
