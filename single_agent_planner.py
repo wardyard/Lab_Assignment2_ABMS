@@ -101,7 +101,7 @@ def simple_single_agent_astar(nodes_dict, from_node, goal_node, heuristics, time
             else:
                 closed_list[(child['loc'], child['timestep'])] = child
                 push_node(open_list, child)
-    print("No path found, "+str(len(closed_list))+" nodes visited")
+    #print("No path found, "+str(len(closed_list))+" nodes visited")
     return False, [], expanded_nodes    # Failed to find solutions
 
 
@@ -118,8 +118,8 @@ def build_constraint_table(constraints, spawntime):
     Returns:
         constraint_table
     """
-    if len(constraints) == 0:
-        print('no constraints for timestep ' + str(spawntime) )
+    #if len(constraints) == 0:
+        #print('no constraints for timestep ' + str(spawntime) )
     # constraints will be indexed by timestep:
     constraint_table = dict()
     for constraint in constraints:
@@ -133,7 +133,7 @@ def build_constraint_table(constraints, spawntime):
             else:
                 # constraint_table[constraint['timestep']].append(constraint)
                 constraint_table[constraint['timestep']].append(constraint)
-    print('constraint table for spawntime ' + str(spawntime) +': ' + str(constraint_table))
+    #print('constraint table for spawntime ' + str(spawntime) +': ' + str(constraint_table))
     return constraint_table
 
 
@@ -152,8 +152,8 @@ def build_constraint_table_cbs(constraints, acid):
     # edge constraint form: ['acid': 2, 'loc': [35, 39], 'timestep': 1.5]
     # vertex constraint form: ['acid': 2, 'loc': [35], 'timestep': 1.5]
 
-    if len(constraints) == 0:
-        print('No CBS constraints for acid  ' + str(acid))
+    #if len(constraints) == 0:
+        #print('No CBS constraints for acid  ' + str(acid))
     # constraints will be indexed by timestep:
     constraint_table = dict()
     for constraint in constraints:
@@ -167,7 +167,7 @@ def build_constraint_table_cbs(constraints, acid):
             else:
                 # constraint_table[constraint['timestep']].append(constraint)
                 constraint_table[constraint['timestep']].append(constraint)
-    print('CBS constraint table for acid ' + str(acid) + ': ' + str(constraint_table))
+    #print('CBS constraint table for acid ' + str(acid) + ': ' + str(constraint_table))
     return constraint_table
 
 
@@ -268,9 +268,9 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             # return to the node it was at before this one either
             if len(path) > 1 and not constrained:
                 last_node = path[-1][0]  # equal to 'current position' in the path construction
-                # print('current path: ' + str(path))
-                # print('last node: ' + str(last_node))
-                # print('neighbor: ' + str(neighbor))
+                # #print('current path: ' + str(path))
+                # #print('last node: ' + str(last_node))
+                # #print('neighbor: ' + str(neighbor))
                 index = -1
                 different = False
                 while not different and len(path) > index * (-1):
@@ -278,11 +278,11 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
                     different = last_node != path[index][0]
                 if different:
                     diff_node = path[index][0]
-                    # print('diff_node: ' + str(diff_node))
+                    # #print('diff_node: ' + str(diff_node))
                     if neighbor == diff_node:
                         constrained = True
                 # else:
-                  #  print('no different node in previous positions')
+                  #  #print('no different node in previous positions')
             # 180° constraints for CBS
             # current heading of the AC
             # TODO: also let this work for path > 1
@@ -337,7 +337,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             else:
                 closed_list[(child['loc'], child['timestep'])] = child
                 push_node(open_list, child)
-    print("No path found, " + str(len(closed_list)) + " nodes visited")
+    #print("No path found, " + str(len(closed_list)) + " nodes visited")
     return False, [], expanded_nodes  # Failed to find solutions
 
 
@@ -363,5 +363,5 @@ def get_path(goal_node):
         path.append((curr['loc'], curr['timestep']))
         curr = curr['parent']
     path.reverse()
-    #print(path)
+    ##print(path)
     return path

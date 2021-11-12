@@ -29,18 +29,18 @@ edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (nod
 ########################################################################################################################
 
 simulation_time = 40
-planner = "Individual"  # choose which planner to use (currently only Independent is implemented)
+planner = "CBS"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = True  # pygame visualization
-visualization_speed = 1 # set at 0.1 as default
+visualization_speed = 0.05 # set at 0.1 as default
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 1
+NUM_OF_SIMULATIONS = 5
 
 # specify arrival rate
-arrival_rate = "low"
+arrival_rate = "high"
 
 # for individual planning: specify the size of the observation area
 # 1 means that it will only see its neighboring nodes
@@ -265,7 +265,7 @@ for i in range(NUM_OF_SIMULATIONS):
             threshold = 0.2
         else:
             raise BaseException('no correct arrival rate specified')
-        '''
+
         if random.random() < threshold:
             if random.random() < 0.5:  # departing AC
                 # determine at which gate the AC starts
@@ -312,37 +312,36 @@ for i in range(NUM_OF_SIMULATIONS):
 
         '''
         if t==0:
-            aircraft_lst.append(Aircraft(1, 'D', 98, 1, t, nodes_dict))
+            aircraft_lst.append(Aircraft(1, 'D', 33, 1, t, nodes_dict))
         if t == 1:
-            aircraft_lst.append(Aircraft(2, 'A', 37, 98, t, nodes_dict))
+            aircraft_lst.append(Aircraft(2, 'A', 38, 97, t, nodes_dict))
         if t==1.5:
             aircraft_lst.append(Aircraft(3, 'D', 34, 2, t, nodes_dict))
-        if t==3.5:
-            aircraft_lst.append(Aircraft(4, 'D', 35, 2, t, nodes_dict))
         if t==4:
-            aircraft_lst.append(Aircraft(5, 'D', 98, 1, t, nodes_dict))
-        if t == 6.5:
-            aircraft_lst.append(Aircraft(6, 'A', 38, 34, t, nodes_dict))
-        if t==9:
-            aircraft_lst.append(Aircraft(7, 'A', 38, 34, t, nodes_dict))
-        if t==9.5:
-            aircraft_lst.append(Aircraft(8, 'A', 37, 98, t, nodes_dict))
-        if t==11:
-            aircraft_lst.append(Aircraft(9, 'D', 36, 1, t, nodes_dict))
-        if t==11.5:
-            aircraft_lst.append(Aircraft(10, 'A', 38, 98, t, nodes_dict))
-        if t==18.5:
-            aircraft_lst.append(Aircraft(11, 'D', 98, 2, t, nodes_dict))
-        if t==19:
+            aircraft_lst.append(Aircraft(4, 'A', 38, 35, t, nodes_dict))
+        if t==5:
+            aircraft_lst.append(Aircraft(5, 'D', 34, 1, t, nodes_dict))
+        if t == 6:
+            aircraft_lst.append(Aircraft(6, 'D', 35, 1, t, nodes_dict))
+        if t==7:
+            aircraft_lst.append(Aircraft(7, 'A', 38, 36, t, nodes_dict))
+        if t==8:
+            aircraft_lst.append(Aircraft(8, 'D', 97, 2, t, nodes_dict))
+        if t==10:
+            aircraft_lst.append(Aircraft(9, 'D', 97, 1, t, nodes_dict))
+        if t==10.5:
+            aircraft_lst.append(Aircraft(10, 'D', 98, 1, t, nodes_dict))
+        if t==12:
+            aircraft_lst.append(Aircraft(11, 'A', 37, 35, t, nodes_dict))
+        if t==15:
             aircraft_lst.append(Aircraft(12, 'A', 38, 98, t, nodes_dict))
-        if t==20:
-            aircraft_lst.append(Aircraft(13, 'A', 38, 36, t, nodes_dict))
-        if t==23.5:
-            aircraft_lst.append(Aircraft(14, 'A', 38, 98, t, nodes_dict))
-        if t==32:
-            aircraft_lst.append(Aircraft(15, 'D', 34, 2, t, nodes_dict))
-
-
+        if t==17:
+            aircraft_lst.append(Aircraft(13, 'D', 98, 1, t, nodes_dict))
+        if t==18:
+            aircraft_lst.append(Aircraft(14, 'D', 35, 1, t, nodes_dict))
+        if t==22:
+            aircraft_lst.append(Aircraft(15, 'A', 38, 97, t, nodes_dict))
+        '''
         # Do planning
         if planner == "Independent":
             time_delta, exp_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
@@ -514,29 +513,52 @@ df_kpi.to_csv(output_file)
 # Statistical analysis
 ########################################################################################################################
 
-# transpose for plotting
-coeffs_variation = np.transpose([travel_time_cv, travel_distance_cv, travel_dt_ratio_cv, throughput_cv, computation_t_cv])
+# the coefficients of variation are split up into 3 arrays wwhere the values are of equal order of magnitude. This is
+# done for scaling reasons while plotting
+# these 3 KPIs have similar coefficients of variation
+coeffs_variation_1 = np.transpose([travel_time_cv, travel_distance_cv, travel_dt_ratio_cv])
+# throughput KPI CV is of a different order of magnitude
+coeffs_variation_2 = np.transpose([throughput_cv])
+# computation time KPi CV is also of a different order of magnitude
+coeffs_variation_3 = np.transpose([computation_t_cv])
 
-# plot evolution of coefficient of variation
+# plot evolution of coefficient of variation for alll KPI except computation time
 fig1 = plt.figure()
-plt.plot(coeffs_variation, label=['avg travel time', 'avg travel distance', 'avg distance/time ratio', 'avg throughput', 'avg computation time'])
+plt.plot(coeffs_variation_1, label=['avg travel time', 'avg travel distance', 'avg distance/time ratio'])
 plt.xlabel('Episode')
 plt.ylabel('Coefficient of variation')
-plt.title('Evolution of coefficient of variation')
+plt.title('Evolution of CV for for avg travel time, distance and time/distance ratio')
 plt.legend()
-plt.show()
+
+# plot evolution of coefficient of variation for throughput
+fig2 = plt.figure()
+plt.plot(coeffs_variation_2, label='avg throughput')
+plt.xlabel('Episode')
+plt.ylabel('Coefficient of variation')
+plt.title('Evolution of CV for avg throughput')
+plt.legend()
+
+# plot evolution of coefficient of variation for computation time
+fig3 = plt.figure()
+plt.plot(coeffs_variation_3, label='avg computation time')
+plt.xlabel('Episode')
+plt.ylabel('Coefficient of variation')
+plt.title('Evolution of CV for avg computation time')
+plt.legend()
 
 # plot heat map
 # TODO: find a suitable value for max_heat such that we can compare heatmaps
 max_heat = max(heatmap)
+#max_heat = 2000
 # now normalize heatmap with respect to 1. The max_heat value will correspond to 1
 # the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual
 # RGB values up until 255
 heatmap = [(1, 1 - a / float(max_heat), 0) for a in heatmap]
 # plot the graph (heatmap)
-plt.figure()
+fig4 = plt.figure()
 node_locations = nx.get_node_attributes(graph, 'xy_pos')
 nx.draw(graph, node_locations, with_labels=True, node_size=100, font_size=10, node_color=heatmap)
+plt.title('Heatmap showing the most often visited nodes. RGB value normalized to a max of 2000 visits')
 plt.show()
 
 # placeholder for debugging such that we can set breakpoint here

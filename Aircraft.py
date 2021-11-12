@@ -97,10 +97,10 @@ class Aircraft(object):
         # Determine nodes between which the ac is moving
         from_node = self.from_to[0]
         # division by 0 debugging
-        #print('from_node: ' + str(from_node))
+        ##print('from_node: ' + str(from_node))
         to_node = self.from_to[1]
         # division by 0 debugging
-        #print('to_node: ' + str(to_node))
+        ##print('to_node: ' + str(to_node))
         xy_from = self.nodes_dict[from_node]["xy_pos"]  # xy position of from node
         xy_to = self.nodes_dict[to_node]["xy_pos"]  # xy position of to node
         distance_to_move = self.speed * dt  # distance to move in this timestep
@@ -109,7 +109,7 @@ class Aircraft(object):
         x = xy_to[0] - xy_from[0]
         y = xy_to[1] - xy_from[1]
         # division by 0 debugging
-        #print('x: ' + str(x) + ', y: ' + str(y))
+        ##print('x: ' + str(x) + ', y: ' + str(y))
         x_normalized = 0 if (x == 0 and y == 0) else x / math.sqrt(x ** 2 + y ** 2)
         y_normalized = 0 if (x == 0 and y == 0) else y / math.sqrt(x ** 2 + y ** 2)
         posx = round(self.position[0] + x_normalized * distance_to_move, 2)  # round to prevent errors
@@ -156,13 +156,13 @@ class Aircraft(object):
                 self.path_to_goal = path[1:]
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
-                print("Path AC", self.id, ":", path)
+                #print("Path AC", self.id, ":", path)
                 self.current_path = path
                 # determine length and time of travelled path + their ratio
                 self.compute_time_distance()
-                print("travel time AC", self.id, ":", self.travel_time)
-                print("travel distance AC", self.id, ":", self.path_length)
-                print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
+                #print("travel time AC", self.id, ":", self.travel_time)
+                #print("travel distance AC", self.id, ":", self.path_length)
+                #print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
 
             else:
                 raise Exception("No solution found for", self.id)
@@ -207,9 +207,9 @@ class Aircraft(object):
                 self.current_path = path.copy()
                 # determine length and time of travelled path + their ratio
                 self.compute_time_distance()
-                # print("travel time AC", self.id, ":", self.travel_time)
-                # print("travel distance AC", self.id, ":", self.path_length)
-                # print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
+                # #print("travel time AC", self.id, ":", self.travel_time)
+                # #print("travel distance AC", self.id, ":", self.path_length)
+                # #print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
 
                 # now add constraints to other agents
                 # constraints are not agent-specific, but spawn time specific
@@ -225,7 +225,7 @@ class Aircraft(object):
                     # edge constraint: only if aircraft has moved already
                     if not timestep <= self.spawntime + dt:
                         # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
-                        # print('timestep: ' + str(timestep))
+                        # #print('timestep: ' + str(timestep))
                         previous_node = path[int((1/dt) * timestep - (1/dt) * self.spawntime - 1)][0]
                         # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can be removed
                         # once this aircraft has reached its goal
@@ -238,7 +238,7 @@ class Aircraft(object):
                 return expanded_nodes, constraints, 0, None
 
             else:
-                print('No solution found for ' + str(self.id))
+                #print('No solution found for ' + str(self.id))
                 return expanded_nodes, constraints, 1, self
 
     def compute_time_distance(self):
@@ -335,7 +335,7 @@ class Aircraft(object):
                 # performance indictaor
                 deadlocks += 1
                 deadlock_ac.append(self)
-                print('no base path found for ac1')
+                #print('no base path found for ac1')
 
         for ac2 in observed_ac:
             # this boolean is only used for debugging purposes
@@ -365,7 +365,7 @@ class Aircraft(object):
                         deadlocks += 1
                         deadlock_ac.append(ac2)
                         deadlock_occurred = True
-                        print('no base path found for ac2')
+                        #print('no base path found for ac2')
                 # included current position and node as well to be able to detect edge collisions
                 path = [(curr_pos_self, t)] + self.path_to_goal[:2]
                 # detect collisions, use CBS function for this since we will use same constraint format as CBS
@@ -419,7 +419,7 @@ class Aircraft(object):
                         expanded_nodes += exp_nodes     # performance indicator
                         deadlock_ac.append(self)
                         deadlock_occurred = True
-                        print('!!! DEADLOCK FOR SELF !!!')
+                        #print('!!! DEADLOCK FOR SELF !!!')
                         return expanded_nodes, deadlocks, deadlock_ac
                     else:
                         # performance indicator
@@ -439,7 +439,7 @@ class Aircraft(object):
                         self.planned_t = True
                         deadlock_occurred = True
                         deadlock_ac.append(ac2)
-                        print('!!! DEADLOCK FOR AC2 !!!')
+                        #print('!!! DEADLOCK FOR AC2 !!!')
                     else:
                         # performance indicator
                         expanded_nodes += exp_nodes
@@ -622,7 +622,7 @@ class Aircraft(object):
                         expanded_nodes += exp_nodes  # performance indicator
                         deadlock_ac.append(self)
                         deadlock_occurred = True
-                        print('!!! DEADLOCK FOR SELF !!!')
+                        #print('!!! DEADLOCK FOR SELF !!!')
                         return expanded_nodes, deadlocks, deadlock_ac
 
                     self.path_to_goal = updated_path[1:]
@@ -705,7 +705,7 @@ class Aircraft(object):
                 deadlocks += 1
                 deadlock_ac.append(self)
                 deadlock_acids.append(self.id)
-                print('no base path found for ac1')
+                #print('no base path found for ac1')
 
         # loop over the other AC that this AC can see in its observation space
         for ac2 in observed_ac:
@@ -733,7 +733,7 @@ class Aircraft(object):
                         deadlocks += 1
                         deadlock_ac.append(ac2)
                         deadlock_acids.append(ac2.id)
-                        print('no base path found for ac2')
+                        ##print('no base path found for ac2')
 
                 # first check whether ac2 is in the loss_list of self. If this is the case, self will have to replan
                 # using the instance variable constraints (self received these constraints when it encountered ac2
@@ -755,7 +755,11 @@ class Aircraft(object):
                         self.loss_list.remove(ac2.id)
 
                     else:       # deadlock
-                        raise BaseException('deadlocked for self')
+                        deadlocks += 1
+                        deadlock_acids.append(self.id)
+                        deadlock_ac.append(self)
+                        # TODO: should something else happen for a deadlock situation?
+                        return expanded_nodes, deadlocks, deadlock_ac, detected_collisions
 
                 # AC2 is not in the loss_list of self
                 else:
