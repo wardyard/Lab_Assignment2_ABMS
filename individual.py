@@ -133,17 +133,24 @@ def create_observation_space(ac, radar_dict, nodes_dict, size):
             ac.observation_space[neighbor] = None
         # If AC can look more than 1 node ahead
         if size > 1:
-            for neighborr in nodes_dict[neighbor]["neighbors"]:
-                if neighborr in radar_dict:
-                    ac.observation_space[neighborr] = radar_dict[neighborr]
+            for neighbor2 in nodes_dict[neighbor]["neighbors"]:
+                if neighbor2 in radar_dict:
+                    ac.observation_space[neighbor2] = radar_dict[neighbor2]
                 else:
                     # current node will be looped over a few times, but that's no prob I think
-                    ac.observation_space[neighborr] = None
+                    ac.observation_space[neighbor2] = None
                 if size > 2:
-                    for neighborrr in nodes_dict[neighborr]["neighbors"]:
-                        if neighborrr in radar_dict:
-                            ac.observation_space[neighborrr] = radar_dict[neighborrr]
+                    for neighbor3 in nodes_dict[neighbor2]["neighbors"]:
+                        if neighbor3 in radar_dict:
+                            ac.observation_space[neighbor3] = radar_dict[neighbor3]
                         else:
                             # current node will be looped over a few times, but that's no prob I think
-                            ac.observation_space[neighborrr] = None
+                            ac.observation_space[neighbor3] = None
+                        if size > 3:
+                            for neighbor4 in nodes_dict[neighbor3]["neighbors"]:
+                                if neighbor4 in radar_dict:
+                                    ac.observation_space[neighbor4] = radar_dict[neighbor4]
+                                else:
+                                    ac.observation_space[neighbor4] = None
+
     return None

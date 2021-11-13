@@ -768,7 +768,7 @@ class Aircraft(object):
                     if collisions:
                         detected_collisions += 1
                         collision = collisions[0]
-                        constraints = []        # constraints resulting from the collision
+                        constraints = []       # constraints resulting from the collision
                         # indicates whether a right of way situation occurred for self
                         right_of_way_happened = False
                         # denotes whether AC2 is at the intersection. If this is the case, the AC shouldn't be treated
@@ -777,6 +777,7 @@ class Aircraft(object):
                         if len(self.nodes_dict[curr_pos_self]["neighbors"]) > 2 and len(
                                 self.nodes_dict[curr_pos_ac2]["neighbors"]) <= 2:
                             right_of_way_happened = True
+                            # find constraint corresponding to self
                             # if self and ac2 want to travel in the same direction, the collision will be a vertex collision.
                             # This collision can be solved using only 1 constraint.
                             # Check if this is the case:
@@ -788,13 +789,17 @@ class Aircraft(object):
                             # else if we have a head on edge collision, the collision can be solved using 2 constraints
                             # which will force self to move away from the intersection
                             elif len(collision['loc']) == 2:
-                                # directly append the constraints to self because it will have to move
-                                #self.constraints.append({'acid': self.id, 'loc': [collision['loc'][0]], 'timestep': t + dt})
-                                self.constraints.append({'acid': self.id, 'loc': [collision['loc'][0]],
-                                                         'timestep': collision['timestep'] + dt})
-                                #self.constraints.append({'acid': self.id, 'loc': [collision['loc'][1]], 'timestep': t + dt})
-                                self.constraints.append({'acid': self.id, 'loc': [collision['loc'][1]],
-                                                         'timestep': collision['timestep'] + dt})
+                                # check for same departure time collision, these have the same format as edge
+                                # constraints but the time step on which they should work is different
+                                if 1 in collision['loc'] and 2 in collision['loc']:
+                                    self.constraints.append({'acid': self.id, 'loc': [collision['loc'][0]],
+                                                             'timestep': collision['timestep']})
+                                else:
+                                    # directly append the constraints to self because it will have to move
+                                    self.constraints.append({'acid': self.id, 'loc': [collision['loc'][0]],
+                                                             'timestep': collision['timestep'] + dt})
+                                    self.constraints.append({'acid': self.id, 'loc': [collision['loc'][1]],
+                                                             'timestep': collision['timestep'] + dt})
                             else:
                                 raise BaseException('something wrong with the collision location')
 
@@ -911,7 +916,7 @@ class Aircraft(object):
                         elif right_of_way_happened and not ac2_at_intersection:
                             # plan new path for self with extra constraints
                             success, new_path_self, exp_nodes = astar(self.nodes_dict, curr_pos_self, self.goal,
-                                                                      heuristics, self.constraints + constraints, t, dt,
+                                                                      heuristics, self.constraints, t, dt,  #used to be self.constraint + constraints
                                                                       self.id, True, self)
                             expanded_nodes += exp_nodes
 

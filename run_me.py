@@ -33,19 +33,19 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = True  # pygame visualization
-visualization_speed = 0.1 # set at 0.1 as default
+visualization = False  # pygame visualization
+visualization_speed = 0.5 # set at 0.1 as default
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 5
+NUM_OF_SIMULATIONS = 200
 
 # specify arrival rate
-arrival_rate = "low"
+arrival_rate = "high"
 
 # for individual planning: specify the size of the observation area
 # 1 means that it will only see its neighboring nodes
 # 2 means that it will account for neighboring nodes and their neighbors
-ind_obs_size = 3
+ind_obs_size = 2
 
 ########################################################################################################################
 
@@ -265,7 +265,7 @@ for i in range(NUM_OF_SIMULATIONS):
             threshold = 0.2
         else:
             raise BaseException('no correct arrival rate specified')
-        
+
         if random.random() < threshold:
             if random.random() < 0.5:  # departing AC
                 # determine at which gate the AC starts
@@ -309,38 +309,46 @@ for i in range(NUM_OF_SIMULATIONS):
                 aircraft_lst.append(ac)
                 spawned_ac += 1
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
-
         '''
+
         if t==0:
-            aircraft_lst.append(Aircraft(1, 'A', 37, 97, t, nodes_dict))
-        if t == 3.5:
-            aircraft_lst.append(Aircraft(2, 'D', 97, 2, t, nodes_dict))
-        if t==1.5:
-            aircraft_lst.append(Aircraft(3, 'D', 34, 2, t, nodes_dict))
-        if t==4:
-            aircraft_lst.append(Aircraft(4, 'A', 38, 35, t, nodes_dict))
-        if t==5:
-            aircraft_lst.append(Aircraft(5, 'D', 34, 1, t, nodes_dict))
-        if t == 6:
-            aircraft_lst.append(Aircraft(6, 'D', 35, 1, t, nodes_dict))
-        if t==7:
-            aircraft_lst.append(Aircraft(7, 'A', 38, 36, t, nodes_dict))
-        if t==8:
-            aircraft_lst.append(Aircraft(8, 'D', 97, 2, t, nodes_dict))
-        if t==10:
-            aircraft_lst.append(Aircraft(9, 'D', 97, 1, t, nodes_dict))
-        if t==10.5:
-            aircraft_lst.append(Aircraft(10, 'D', 98, 1, t, nodes_dict))
-        if t==12:
-            aircraft_lst.append(Aircraft(11, 'A', 37, 35, t, nodes_dict))
+            aircraft_lst.append(Aircraft(1, 'D', 36, 2, t, nodes_dict))
+        if t == 2.5:
+            aircraft_lst.append(Aircraft(2, 'D', 35, 1, t, nodes_dict))
+        if t==4.5:
+            aircraft_lst.append(Aircraft(3, 'A', 37, 98, t, nodes_dict))
+        if t==7.5:
+            aircraft_lst.append(Aircraft(4, 'D', 34, 1, t, nodes_dict))
+        if t==8.5:
+            aircraft_lst.append(Aircraft(5, 'A', 37, 98, t, nodes_dict))
+        if t == 10:
+            aircraft_lst.append(Aircraft(6, 'A', 38, 36, t, nodes_dict))
+        if t==14:
+            aircraft_lst.append(Aircraft(7, 'A', 38, 35, t, nodes_dict))
         if t==15:
-            aircraft_lst.append(Aircraft(12, 'A', 38, 98, t, nodes_dict))
-        if t==17:
-            aircraft_lst.append(Aircraft(13, 'D', 98, 1, t, nodes_dict))
-        if t==18:
-            aircraft_lst.append(Aircraft(14, 'D', 35, 1, t, nodes_dict))
-        if t==22:
-            aircraft_lst.append(Aircraft(15, 'A', 38, 97, t, nodes_dict))
+            aircraft_lst.append(Aircraft(8, 'D', 35, 1, t, nodes_dict))
+        if t==15.5:
+            aircraft_lst.append(Aircraft(9, 'D', 97, 2, t, nodes_dict))
+        if t==16.5:
+            aircraft_lst.append(Aircraft(10, 'D', 97, 1, t, nodes_dict))
+        if t==20:
+            aircraft_lst.append(Aircraft(11, 'D', 36, 1, t, nodes_dict))
+        if t==21:
+            aircraft_lst.append(Aircraft(12, 'D', 34, 2, t, nodes_dict))
+        if t==23.5:
+            aircraft_lst.append(Aircraft(13, 'D', 34, 1, t, nodes_dict))
+        if t==24:
+            aircraft_lst.append(Aircraft(14, 'D', 97, 1, t, nodes_dict))
+        if t==24.5:
+            aircraft_lst.append(Aircraft(15, 'D', 35, 2, t, nodes_dict))
+        if t==26.5:
+            aircraft_lst.append(Aircraft(16, 'A', 38, 34, t, nodes_dict))
+        if t==27.5:
+            aircraft_lst.append(Aircraft(17, 'D', 34, 1, t, nodes_dict))
+        if t==31:
+            aircraft_lst.append(Aircraft(18, 'A', 37, 97, t, nodes_dict))
+        if t==34.5:
+            aircraft_lst.append(Aircraft(19, 'A', 37, 34, t, nodes_dict))
         '''
         # Do planning
         if planner == "Independent":
@@ -503,9 +511,9 @@ elif planner == "CBS":
         output_file = "results_cbs_hi.csv"
 elif planner == "Individual":
     if arrival_rate =="low":
-        output_file = "results_ind_lo.csv"
+        output_file = "results_ind_lo_bid_full.csv"
     else:
-        output_file = "results_ind_hi.csv"
+        output_file = "results_ind_hi_bid_full.csv"
 
 df_kpi.to_csv(output_file)
 
