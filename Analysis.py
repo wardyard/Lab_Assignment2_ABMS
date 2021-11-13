@@ -288,7 +288,7 @@ if __name__ == '__main__':
     ####################################################################################################################
     A_comp_cbs_ind_hi = VD_A(list(res_cbs_hi['comput_t_avg']), list(res_ind_hi['comput_t_avg']))
     print('----------------')
-    print('Vargha and Delaney A index for comparing average travel distance: CBS vs Individual and high demand: ' +
+    print('Vargha and Delaney A index for comparing average computation time: CBS vs Individual and high demand: ' +
           str(A_comp_cbs_ind_hi))
 
     ####################################################################################################################
@@ -296,7 +296,7 @@ if __name__ == '__main__':
     ####################################################################################################################
     A_comp_cbs_prio_hi = VD_A(list(res_cbs_hi['comput_t_avg']), list(res_prio_hi['comput_t_avg']))
     print('----------------')
-    print('Vargha and Delaney A index for comparing average travel distance: CBS vs Prioritised and high demand: ' +
+    print('Vargha and Delaney A index for comparing average computation time: CBS vs Prioritised and high demand: ' +
           str(A_comp_cbs_prio_hi))
 
     ####################################################################################################################
@@ -304,7 +304,7 @@ if __name__ == '__main__':
     ####################################################################################################################
     A_comp_ind_prio_hi = VD_A(list(res_ind_hi['comput_t_avg']), list(res_prio_hi['comput_t_avg']))
     print('----------------')
-    print('Vargha and Delaney A index for comparing average travel distance: Individual vs Prioritised and high demand: '
+    print('Vargha and Delaney A index for comparing average computation time: Individual vs Prioritised and high demand: '
           + str(A_comp_ind_prio_hi))
 
     ####################################################################################################################
@@ -312,7 +312,7 @@ if __name__ == '__main__':
     ####################################################################################################################
     A_comp_cbs_ind_lo = VD_A(list(res_cbs_lo['comput_t_avg']), list(res_ind_lo['comput_t_avg']))
     print('----------------')
-    print('Vargha and Delaney A index for comparing average travel distance: CBS vs Individual and low demand: ' +
+    print('Vargha and Delaney A index for comparing average computation time: CBS vs Individual and low demand: ' +
           str(A_comp_cbs_ind_lo))
 
     ####################################################################################################################
@@ -320,7 +320,7 @@ if __name__ == '__main__':
     ####################################################################################################################
     A_comp_cbs_prio_lo = VD_A(list(res_cbs_lo['comput_t_avg']), list(res_prio_lo['comput_t_avg']))
     print('----------------')
-    print('Vargha and Delaney A index for comparing average travel distance: CBS vs Prioritised and low demand: ' +
+    print('Vargha and Delaney A index for comparing average computation time: CBS vs Prioritised and low demand: ' +
           str(A_comp_cbs_prio_lo))
 
     ####################################################################################################################
@@ -329,5 +329,149 @@ if __name__ == '__main__':
     A_comp_ind_prio_lo = VD_A(list(res_ind_lo['comput_t_avg']), list(res_prio_lo['comput_t_avg']))
     print('----------------')
     print(
-        'Vargha and Delaney A index for comparing average travel distance: Individual vs Prioritised and low demand: '
+        'Vargha and Delaney A index for comparing average computation time: Individual vs Prioritised and low demand: '
         + str(A_comp_ind_prio_lo))
+
+    ####################################################################################################################
+    # hypothesis 22: avg throughput for CBS higher than Individual for high arrival rate
+    ####################################################################################################################
+    A_thru_cbs_ind_hi = VD_A(list(res_cbs_hi['throughput_avg']), list(res_ind_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing average throughput: CBS vs Individual and high demand: '
+          + str(A_thru_cbs_ind_hi))
+
+    ####################################################################################################################
+    # hypothesis 23: avg throughput for CBS higher than Prioritised for high arrival rate
+    ####################################################################################################################
+    A_thru_cbs_prio_hi = VD_A(list(res_cbs_hi['throughput_avg']), list(res_prio_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing average throughput: CBS vs Prioritised and high demand: '
+          + str(A_thru_cbs_prio_hi))
+
+    ####################################################################################################################
+    # hypothesis 24: avg throughput for Individual higher than Prioritised for high arrival rate
+    ####################################################################################################################
+    A_thru_ind_prio_hi = VD_A(list(res_ind_hi['throughput_avg']), list(res_prio_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing average throughput: Individual vs Prioritised and high demand: '
+          + str(A_thru_ind_prio_hi))
+
+    ####################################################################################################################
+    # hypothesis 25: avg throughput for CBS higher than Individual for low arrival rate
+    ####################################################################################################################
+    A_thru_cbs_ind_lo = VD_A(list(res_cbs_lo['throughput_avg']), list(res_ind_lo['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing average throughput: CBS vs Individual and low demand: '
+          + str(A_thru_cbs_ind_lo))
+
+    ####################################################################################################################
+    # hypothesis 26: avg throughput for CBS higher than Prioritised for low arrival rate
+    ####################################################################################################################
+    A_thru_cbs_prio_lo = VD_A(list(res_cbs_lo['throughput_avg']), list(res_prio_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing average throughput: CBS vs Prioritised and low demand: '
+          + str(A_thru_cbs_prio_lo))
+
+    ####################################################################################################################
+    # hypothesis 27: avg throughput for Individual higher than Prioritised for low arrival rate
+    ####################################################################################################################
+    A_thru_ind_prio_lo = VD_A(list(res_ind_lo['throughput_avg']), list(res_prio_lo['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing average throughput: Individual vs Prioritised and low demand: '
+          + str(A_thru_ind_prio_lo))
+
+    ####################################################################################################################
+    # hypothesis 28: avg expanded nodes higher for CBS than Individual and high demand
+    ####################################################################################################################
+    A_exp_cbs_ind_hi = VD_A(list(res_cbs_hi['exp_nodes']), list(res_ind_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: CBS vs Individual and high demand: '
+          + str(A_exp_cbs_ind_hi))
+
+    ####################################################################################################################
+    # hypothesis 29: avg expanded nodes higher for CBS than Prioritised and high demand
+    ####################################################################################################################
+    A_exp_cbs_prio_hi = VD_A(list(res_cbs_hi['exp_nodes']), list(res_prio_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: CBS vs Prioritised and high demand: '
+          + str(A_exp_cbs_prio_hi))
+
+    ####################################################################################################################
+    # hypothesis 30: avg expanded nodes higher for Individual than Prioritised and high demand
+    ####################################################################################################################
+    A_exp_ind_prio_hi = VD_A(list(res_ind_hi['exp_nodes']), list(res_prio_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: Individual vs Prioritised and high demand: '
+          + str(A_exp_ind_prio_hi))
+
+    ####################################################################################################################
+    # hypothesis 31: avg expanded nodes higher for CBS than Individual and low demand
+    ####################################################################################################################
+    A_exp_cbs_ind_lo = VD_A(list(res_cbs_lo['exp_nodes']), list(res_ind_lo['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: CBS vs Individual and low demand: '
+          + str(A_exp_cbs_ind_lo))
+
+    ####################################################################################################################
+    # hypothesis 32: avg expanded nodes higher for CBS than Prioritised and low demand
+    ####################################################################################################################
+    A_exp_cbs_prio_lo = VD_A(list(res_cbs_lo['exp_nodes']), list(res_prio_lo['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: CBS vs Prioritised and low demand: '
+          + str(A_exp_cbs_prio_lo))
+
+    ####################################################################################################################
+    # hypothesis 33: avg expanded nodes higher for Individual than Prioritised and low demand
+    ####################################################################################################################
+    A_exp_ind_prio_lo = VD_A(list(res_ind_lo['exp_nodes']), list(res_prio_lo['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: Individual vs Prioritised and low demand: '
+          + str(A_exp_ind_prio_lo))
+
+    ####################################################################################################################
+    # hypothesis 34: avg deadlocks higher for CBS than Individual for high demand
+    ####################################################################################################################
+    A_dead_cbs_ind_hi = VD_A(list(res_cbs_hi['deadlocks']), list(res_ind_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: CBS vs Individual and high demand: '
+          + str(A_dead_cbs_ind_hi))
+
+    ####################################################################################################################
+    # hypothesis 35: avg deadlocks higher for CBS than Prioritised for high demand
+    ####################################################################################################################
+    A_dead_cbs_prio_hi = VD_A(list(res_cbs_hi['deadlocks']), list(res_prio_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: CBS vs Prioritised and high demand: '
+          + str(A_dead_cbs_prio_hi))
+
+    ####################################################################################################################
+    # hypothesis 36: avg deadlocks higher for Individual than Prioritised for high demand
+    ####################################################################################################################
+    A_dead_ind_prio_hi = VD_A(list(res_ind_hi['deadlocks']), list(res_prio_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: Individual vs Prioritised and high demand: '
+          + str(A_dead_ind_prio_hi))
+
+    ####################################################################################################################
+    # hypothesis 37: avg deadlocks higher for CBS than Individual for low demand
+    ####################################################################################################################
+    A_dead_cbs_ind_lo = VD_A(list(res_cbs_lo['deadlocks']), list(res_ind_lo['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: CBS vs Individual and low demand: '
+          + str(A_dead_cbs_ind_lo))
+
+    ####################################################################################################################
+    # hypothesis 38: avg deadlocks higher for CBS than Prioritised for low demand
+    ####################################################################################################################
+    A_dead_cbs_prio_lo = VD_A(list(res_cbs_lo['deadlocks']), list(res_prio_lo['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: CBS vs Prioritised and low demand: '
+          + str(A_dead_cbs_prio_lo))
+
+    ####################################################################################################################
+    # hypothesis 39: avg deadlocks higher for Individual than Prioritised for high demand
+    ####################################################################################################################
+    A_dead_ind_prio_lo = VD_A(list(res_ind_lo['deadlocks']), list(res_prio_lo['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: Individual vs Prioritised and low demand: '
+          + str(A_dead_ind_prio_lo))
