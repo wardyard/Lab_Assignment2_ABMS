@@ -789,8 +789,12 @@ class Aircraft(object):
                             # which will force self to move away from the intersection
                             elif len(collision['loc']) == 2:
                                 # directly append the constraints to self because it will have to move
-                                self.constraints.append({'acid': self.id, 'loc': [collision['loc'][0]], 'timestep': t + dt})
-                                self.constraints.append({'acid': self.id, 'loc': [collision['loc'][1]], 'timestep': t + dt})
+                                #self.constraints.append({'acid': self.id, 'loc': [collision['loc'][0]], 'timestep': t + dt})
+                                self.constraints.append({'acid': self.id, 'loc': [collision['loc'][0]],
+                                                         'timestep': collision['timestep'] + dt})
+                                #self.constraints.append({'acid': self.id, 'loc': [collision['loc'][1]], 'timestep': t + dt})
+                                self.constraints.append({'acid': self.id, 'loc': [collision['loc'][1]],
+                                                         'timestep': collision['timestep'] + dt})
                             else:
                                 raise BaseException('something wrong with the collision location')
 

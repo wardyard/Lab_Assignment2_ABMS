@@ -29,23 +29,23 @@ edges_file = "edges.xlsx"  # xlsx file with for each edge: from  (node), to (nod
 ########################################################################################################################
 
 simulation_time = 40
-planner = "Prioritized"  # choose which planner to use (currently only Independent is implemented)
+planner = "Individual"  # choose which planner to use (currently only Independent is implemented)
 
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
-visualization = False  # pygame visualization
-visualization_speed = 0.05 # set at 0.1 as default
+visualization = True  # pygame visualization
+visualization_speed = 0.1 # set at 0.1 as default
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 200
+NUM_OF_SIMULATIONS = 5
 
 # specify arrival rate
-arrival_rate = "high"
+arrival_rate = "low"
 
 # for individual planning: specify the size of the observation area
 # 1 means that it will only see its neighboring nodes
 # 2 means that it will account for neighboring nodes and their neighbors
-ind_obs_size = 2
+ind_obs_size = 3
 
 ########################################################################################################################
 
@@ -265,7 +265,7 @@ for i in range(NUM_OF_SIMULATIONS):
             threshold = 0.2
         else:
             raise BaseException('no correct arrival rate specified')
-
+        
         if random.random() < threshold:
             if random.random() < 0.5:  # departing AC
                 # determine at which gate the AC starts
@@ -312,9 +312,9 @@ for i in range(NUM_OF_SIMULATIONS):
 
         '''
         if t==0:
-            aircraft_lst.append(Aircraft(1, 'D', 33, 1, t, nodes_dict))
-        if t == 1:
-            aircraft_lst.append(Aircraft(2, 'A', 38, 97, t, nodes_dict))
+            aircraft_lst.append(Aircraft(1, 'A', 37, 97, t, nodes_dict))
+        if t == 3.5:
+            aircraft_lst.append(Aircraft(2, 'D', 97, 2, t, nodes_dict))
         if t==1.5:
             aircraft_lst.append(Aircraft(3, 'D', 34, 2, t, nodes_dict))
         if t==4:
@@ -548,7 +548,7 @@ plt.legend()
 
 # plot heat map
 # TODO: find a suitable value for max_heat such that we can compare heatmaps
-max_heat = max(heatmap)
+max_heat = 3100
 #max_heat = 2000
 # now normalize heatmap with respect to 1. The max_heat value will correspond to 1
 # the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual

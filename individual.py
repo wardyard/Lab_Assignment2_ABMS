@@ -139,11 +139,11 @@ def create_observation_space(ac, radar_dict, nodes_dict, size):
                 else:
                     # current node will be looped over a few times, but that's no prob I think
                     ac.observation_space[neighborr] = None
-            if size > 2:
-                for neighborrr in nodes_dict[neighborr]["neighbors"]:
-                    if neighborrr in radar_dict:
-                        ac.observation_space[neighborrr] = radar_dict[neighborrr]
-                    else:
-                        # current node will be looped over a few times, but that's no prob I think
-                        ac.observation_space[neighborrr] = None
+                if size > 2:
+                    for neighborrr in nodes_dict[neighborr]["neighbors"]:
+                        if neighborrr in radar_dict:
+                            ac.observation_space[neighborrr] = radar_dict[neighborrr]
+                        else:
+                            # current node will be looped over a few times, but that's no prob I think
+                            ac.observation_space[neighborrr] = None
     return None
