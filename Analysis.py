@@ -96,41 +96,25 @@ def VD_A_DF(data, val_col: str = None, group_col: str = None, sort=True):
 
 
 if __name__ == '__main__':
-    # Examples
-    '''
-    # negligible
-    F = [0.8236111111111111, 0.7966666666666666, 0.923611111111111, 0.8197222222222222, 0.7108333333333333]
-    G = [0.8052777777777779, 0.8172222222222221, 0.8322222222222223, 0.783611111111111, 0.8141666666666666]
-    print(VD_A(G, F))
 
-    # small
-    A = [0.478515625, 0.4638671875, 0.4638671875, 0.4697265625, 0.4638671875, 0.474609375, 0.4814453125, 0.4814453125,
-         0.4697265625, 0.4814453125, 0.474609375, 0.4833984375, 0.484375, 0.44921875, 0.474609375, 0.484375,
-         0.4814453125, 0.4638671875, 0.484375, 0.478515625, 0.478515625, 0.45703125, 0.484375, 0.419921875,
-         0.4833984375, 0.478515625, 0.4697265625, 0.484375, 0.478515625, 0.4638671875]
-    B = [0.4814453125, 0.478515625, 0.44921875, 0.4814453125, 0.4638671875, 0.478515625, 0.474609375, 0.4638671875,
-         0.474609375, 0.44921875, 0.474609375, 0.478515625, 0.478515625, 0.474609375, 0.4697265625, 0.474609375,
-         0.45703125, 0.4697265625, 0.478515625, 0.4697265625, 0.4697265625, 0.484375, 0.45703125, 0.474609375,
-         0.474609375, 0.4638671875, 0.45703125, 0.474609375, 0.4638671875, 0.4306640625]
-
-    print(VD_A(A, B))
-
-    # medium
-    C = [0.9108333333333334, 0.8755555555555556, 0.900277777777778, 0.9274999999999999, 0.8777777777777779]
-    E = [0.8663888888888888, 0.8802777777777777, 0.7816666666666667, 0.8377777777777776, 0.9305555555555556]
-    print(VD_A(C, E))
-
-    # Large
-    D = [0.7202777777777778, 0.77, 0.8544444444444445, 0.7947222222222222, 0.7577777777777778]
-    print(VD_A(C, D))
-    '''
     # load data
-    res_cbs_hi = pd.read_csv('results_cbs_hi.csv')
-    res_cbs_lo = pd.read_csv('results_cbs_lo.csv')
-    res_ind_hi = pd.read_csv('results_ind_hi.csv')
-    res_ind_lo = pd.read_csv('results_ind_lo.csv')
-    res_prio_hi = pd.read_csv('results_prio_hi.csv')
-    res_prio_lo = pd.read_csv('results_prio_lo.csv')
+    res_cbs_hi = pd.read_csv('Simulation results/results_cbs_hi.csv')
+    res_cbs_lo = pd.read_csv('Simulation results/results_cbs_lo.csv')
+    res_ind_hi = pd.read_csv('Simulation results/results_ind_hi.csv')
+    res_ind_lo = pd.read_csv('Simulation results/results_ind_lo.csv')
+    res_prio_hi = pd.read_csv('Simulation results/results_prio_hi.csv')
+    res_prio_lo = pd.read_csv('Simulation results/results_prio_lo.csv')
+
+    # load sensitivity analysis data for changes in observation size (Individual planning)
+    res_obs_2_hi = res_ind_hi
+    res_obs_3_hi = pd.read_csv('Sensitivity analysis/Observation size/results_ind_hi_obs_3.csv')
+    res_obs_4_hi = pd.read_csv('Sensitivity analysis/Observation size/results_ind_hi_obs_4.csv')
+
+    # load sensitivity analysis data for change in bidding decay factor (Individual planning)
+    res_bid_11_hi = res_ind_hi
+    res_bid_15_hi = pd.read_csv('Sensitivity analysis/Bidding factor/results_ind_hi_bid_15.csv')
+    res_bid_20_hi = pd.read_csv('Sensitivity analysis/Bidding factor/results_ind_hi_bid_20.csv')
+    res_bid_full_hi = pd.read_csv('Sensitivity analysis/Bidding factor/results_ind_hi_bid_full.csv')
 
     ####################################################################################################################
     # hypothesis 1: average travel time for CBS is higher than for Individual planning with a high arrival rate
@@ -165,11 +149,11 @@ if __name__ == '__main__':
           + str(A_travel_t_cbs_ind_lo))
 
     ####################################################################################################################
-    # hypothesis 5: average travel time for CBS is higher than for Prioritised planning with a high arrival rate
+    # hypothesis 5: average travel time for CBS is higher than for Prioritised planning with a low arrival rate
     ####################################################################################################################
     A_travel_t_cbs_prio_lo = VD_A(list(res_cbs_lo['travel_t_avg']), list(res_prio_lo['travel_t_avg']))
     print('----------------')
-    print('Vargha and Delaney A index for comparing average travel time: CBS vs Prioritised and high demand: '
+    print('Vargha and Delaney A index for comparing average travel time: CBS vs Prioritised and low demand: '
           + str(A_travel_t_cbs_prio_lo))
 
     ####################################################################################################################
@@ -177,7 +161,7 @@ if __name__ == '__main__':
     ####################################################################################################################
     A_travel_t_ind_prio_lo = VD_A(list(res_ind_lo['travel_t_avg']), list(res_prio_lo['travel_t_avg']))
     print('----------------')
-    print('Vargha and Delaney A index for comparing average travel time: Individual vs Prioritised and high demand: '
+    print('Vargha and Delaney A index for comparing average travel time: Individual vs Prioritised and low demand: '
           + str(A_travel_t_ind_prio_lo))
 
     ####################################################################################################################
@@ -367,7 +351,7 @@ if __name__ == '__main__':
     ####################################################################################################################
     # hypothesis 26: avg throughput for CBS higher than Prioritised for low arrival rate
     ####################################################################################################################
-    A_thru_cbs_prio_lo = VD_A(list(res_cbs_lo['throughput_avg']), list(res_prio_hi['throughput_avg']))
+    A_thru_cbs_prio_lo = VD_A(list(res_cbs_lo['throughput_avg']), list(res_prio_lo['throughput_avg']))
     print('---------------')
     print('Vargha and Delaney A index for comparing average throughput: CBS vs Prioritised and low demand: '
           + str(A_thru_cbs_prio_lo))
@@ -475,3 +459,679 @@ if __name__ == '__main__':
     print('---------------')
     print('Vargha and Delaney A index for comparing deadlocks: Individual vs Prioritised and low demand: '
           + str(A_dead_ind_prio_lo))
+
+    ####################################################################################################################
+    # hypothesis 40: avg travel time CBS high vs low demand
+    ####################################################################################################################
+    A_travel_t_cbs = VD_A(list(res_cbs_hi['travel_t_avg']), list(res_cbs_lo['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: CBS high and low demand: '
+          + str(A_travel_t_cbs))
+
+    ####################################################################################################################
+    # hypothesis 41: avg travel distance CBS high vs low demand
+    ####################################################################################################################
+    A_travel_d_cbs = VD_A(list(res_cbs_hi['travel_d_avg']), list(res_cbs_lo['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: CBS high and low demand: '
+          + str(A_travel_d_cbs))
+
+    ####################################################################################################################
+    # hypothesis 42: avg travel distance CBS high vs low demand
+    ####################################################################################################################
+    A_travel_td_cbs = VD_A(list(res_cbs_hi['travel_td_avg']), list(res_cbs_lo['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: CBS high and low demand: '
+          + str(A_travel_td_cbs))
+
+    ####################################################################################################################
+    # hypothesis 43: avg computation time CBS high vs low demand
+    ####################################################################################################################
+    A_comp_cbs = VD_A(list(res_cbs_hi['comput_t_avg']), list(res_cbs_lo['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: CBS high and low demand: '
+          + str(A_comp_cbs))
+
+    ####################################################################################################################
+    # hypothesis 44: avg throughput CBS high vs low demand
+    ####################################################################################################################
+    A_tru_cbs = VD_A(list(res_cbs_hi['throughput_avg']), list(res_cbs_lo['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: CBS high and low demand: '
+          + str(A_tru_cbs))
+
+    ####################################################################################################################
+    # hypothesis 45: avg expanded nodes CBS high vs low demand
+    ####################################################################################################################
+    A_exp_cbs = VD_A(list(res_cbs_hi['exp_nodes']), list(res_cbs_lo['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: CBS high and low demand: '
+          + str(A_exp_cbs))
+
+    ####################################################################################################################
+    # hypothesis 46: avg deadlocks CBS high vs low demand
+    ####################################################################################################################
+    A_dead_cbs = VD_A(list(res_cbs_hi['deadlocks']), list(res_cbs_lo['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: CBS high and low demand: '
+          + str(A_dead_cbs))
+
+    ####################################################################################################################
+    # hypothesis 47: avg travel time Prioritised high vs low demand
+    ####################################################################################################################
+    A_travel_t_prio = VD_A(list(res_prio_hi['travel_t_avg']), list(res_prio_lo['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: Prioritised high and low demand: '
+          + str(A_travel_t_prio))
+
+    ####################################################################################################################
+    # hypothesis 48: avg travel distance Prioritised high vs low demand
+    ####################################################################################################################
+    A_travel_d_prio = VD_A(list(res_prio_hi['travel_d_avg']), list(res_prio_lo['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: Prioritised high and low demand: '
+          + str(A_travel_d_prio))
+
+    ####################################################################################################################
+    # hypothesis 49: avg travel time/distance Prioritised high vs low demand
+    ####################################################################################################################
+    A_travel_td_prio = VD_A(list(res_prio_hi['travel_td_avg']), list(res_prio_lo['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: Prioritised high and low demand: '
+          + str(A_travel_td_prio))
+
+    ####################################################################################################################
+    # hypothesis 50: avg computation time Prioritised high vs low demand
+    ####################################################################################################################
+    A_comp_prio = VD_A(list(res_prio_hi['comput_t_avg']), list(res_prio_lo['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: Prioritised high and low demand: '
+          + str(A_comp_prio))
+
+    ####################################################################################################################
+    # hypothesis 51: avg throughput Prioritised high vs low demand
+    ####################################################################################################################
+    A_tru_prio = VD_A(list(res_prio_hi['throughput_avg']), list(res_prio_lo['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for throughput: Prioritised high and low demand: '
+          + str(A_tru_prio))
+
+    ####################################################################################################################
+    # hypothesis 52: avg exp nodes Prioritised high vs low demand
+    ####################################################################################################################
+    A_exp_prio = VD_A(list(res_prio_hi['exp_nodes']), list(res_prio_lo['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: Prioritised high and low demand: '
+          + str(A_exp_prio))
+
+    ####################################################################################################################
+    # hypothesis 53: avg deadlocks Prioritised high vs low demand
+    ####################################################################################################################
+    A_dead_prio = VD_A(list(res_prio_hi['deadlocks']), list(res_prio_lo['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: Prioritised high and low demand: '
+          + str(A_dead_prio))
+
+    ####################################################################################################################
+    # hypothesis 54: avg travel time Individual high vs low demand
+    ####################################################################################################################
+    A_travel_t_ind = VD_A(list(res_ind_hi['travel_t_avg']), list(res_ind_lo['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: Individual high and low demand: '
+          + str(A_travel_t_ind))
+
+    ####################################################################################################################
+    # hypothesis 55: avg travel distance Individual high vs low demand
+    ####################################################################################################################
+    A_travel_d_ind = VD_A(list(res_ind_hi['travel_d_avg']), list(res_ind_lo['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: Individual high and low demand: '
+          + str(A_travel_d_ind))
+
+    ####################################################################################################################
+    # hypothesis 56: avg travel time/distance Individual high vs low demand
+    ####################################################################################################################
+    A_travel_td_ind = VD_A(list(res_ind_hi['travel_td_avg']), list(res_ind_lo['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: Individual high and low demand: '
+          + str(A_travel_td_ind))
+
+    ####################################################################################################################
+    # hypothesis 57: avg computation time Individual high vs low demand
+    ####################################################################################################################
+    A_comp_ind = VD_A(list(res_ind_hi['comput_t_avg']), list(res_ind_lo['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: Individual high and low demand: '
+          + str(A_comp_ind))
+
+    ####################################################################################################################
+    # hypothesis 58: avg throughput Individual high vs low demand
+    ####################################################################################################################
+    A_tru_ind = VD_A(list(res_ind_hi['throughput_avg']), list(res_ind_lo['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: Individual high and low demand: '
+          + str(A_tru_ind))
+
+    ####################################################################################################################
+    # hypothesis 59: avg exp nodes Individual high vs low demand
+    ####################################################################################################################
+    A_exp_ind = VD_A(list(res_ind_hi['exp_nodes']), list(res_ind_lo['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: Individual high and low demand: '
+          + str(A_exp_ind))
+
+    ####################################################################################################################
+    # hypothesis 60: avg deadlocks Individual high vs low demand
+    ####################################################################################################################
+    A_dead_ind = VD_A(list(res_ind_hi['deadlocks']), list(res_ind_lo['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: Individual high and low demand: '
+          + str(A_dead_ind))
+
+    print('-----------------SENSITIVITY ANALYSIS----------------------------')
+    print('-----------INDIVIDUAL PLANNING OBSERVATION SIZE--------------------')
+
+    ####################################################################################################################
+    # hypothesis 61: avg travel time higher for observation size 2 vs 3 with high demand
+    ####################################################################################################################
+    A_travel_t_23_hi = VD_A(list(res_obs_2_hi['travel_t_avg']), list(res_obs_3_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: obs 2 vs 3 and high demand: '
+          + str(A_travel_t_23_hi))
+
+    ####################################################################################################################
+    # hypothesis 62: avg travel time higher for observation size 2 vs 4 with high demand
+    ####################################################################################################################
+    A_travel_t_24_hi = VD_A(list(res_obs_2_hi['travel_t_avg']), list(res_obs_4_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: obs 2 vs 4 and high demand: '
+          + str(A_travel_t_24_hi))
+
+    ####################################################################################################################
+    # hypothesis 63: avg travel time higher for observation size 3 vs 4 with high demand
+    ####################################################################################################################
+    A_travel_t_34_hi = VD_A(list(res_obs_3_hi['travel_t_avg']), list(res_obs_4_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: obs 3 vs 4 and high demand: '
+          + str(A_travel_t_34_hi))
+
+    ####################################################################################################################
+    # hypothesis 64: avg travel distance higher for observation size 2 vs 3 with high demand
+    ####################################################################################################################
+    A_travel_d_23_hi = VD_A(list(res_obs_2_hi['travel_d_avg']), list(res_obs_3_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: obs 2 vs 3 and high demand: '
+          + str(A_travel_d_23_hi))
+
+    ####################################################################################################################
+    # hypothesis 65: avg travel distance higher for observation size 2 vs 4 with high demand
+    ####################################################################################################################
+    A_travel_d_24_hi = VD_A(list(res_obs_2_hi['travel_d_avg']), list(res_obs_4_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: obs 2 vs 4 and high demand: '
+          + str(A_travel_d_24_hi))
+
+    ####################################################################################################################
+    # hypothesis 66: avg travel distance higher for observation size 3 vs 4 with high demand
+    ####################################################################################################################
+    A_travel_d_34_hi = VD_A(list(res_obs_3_hi['travel_d_avg']), list(res_obs_4_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: obs 3 vs 4 and high demand: '
+          + str(A_travel_d_34_hi))
+
+    ####################################################################################################################
+    # hypothesis 67: avg travel time/distance higher for observation size 2 vs 3 with high demand
+    ####################################################################################################################
+    A_travel_td_23_hi = VD_A(list(res_obs_2_hi['travel_td_avg']), list(res_obs_3_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: obs 2 vs 3 and high demand: '
+          + str(A_travel_td_23_hi))
+
+    ####################################################################################################################
+    # hypothesis 68: avg travel time/distance higher for observation size 2 vs 4 with high demand
+    ####################################################################################################################
+    A_travel_td_24_hi = VD_A(list(res_obs_2_hi['travel_td_avg']), list(res_obs_4_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: obs 2 vs 4 and high demand: '
+          + str(A_travel_td_24_hi))
+
+    ####################################################################################################################
+    # hypothesis 69: avg travel time/distance higher for observation size 3 vs 4 with high demand
+    ####################################################################################################################
+    A_travel_td_34_hi = VD_A(list(res_obs_3_hi['travel_td_avg']), list(res_obs_4_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: obs 3 vs 4 and high demand: '
+          + str(A_travel_td_34_hi))
+
+    ####################################################################################################################
+    # hypothesis 70: avg computation time higher for observation size 2 vs 3 with high demand
+    ####################################################################################################################
+    A_comp_23_hi = VD_A(list(res_obs_2_hi['comput_t_avg']), list(res_obs_3_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: obs 2 vs 3 and high demand: '
+          + str(A_comp_23_hi))
+
+    ####################################################################################################################
+    # hypothesis 71: avg computation time higher for observation size 2 vs 4 with high demand
+    ####################################################################################################################
+    A_comp_24_hi = VD_A(list(res_obs_2_hi['comput_t_avg']), list(res_obs_4_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: obs 2 vs 4 and high demand: '
+          + str(A_comp_24_hi))
+
+    ####################################################################################################################
+    # hypothesis 72: avg computation time higher for observation size 3 vs 4 with high demand
+    ####################################################################################################################
+    A_comp_34_hi = VD_A(list(res_obs_3_hi['comput_t_avg']), list(res_obs_4_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: obs 3 vs 4 and high demand: '
+          + str(A_comp_34_hi))
+
+    ####################################################################################################################
+    # hypothesis 73: avg throughput higher for observation size 2 vs 3 with high demand
+    ####################################################################################################################
+    A_tru_23_hi = VD_A(list(res_obs_2_hi['throughput_avg']), list(res_obs_3_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: obs 2 vs 3 and high demand: '
+          + str(A_tru_23_hi))
+
+    ####################################################################################################################
+    # hypothesis 74: avg throughput higher for observation size 2 vs 4 with high demand
+    ####################################################################################################################
+    A_tru_24_hi = VD_A(list(res_obs_2_hi['throughput_avg']), list(res_obs_4_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: obs 2 vs 4 and high demand: '
+          + str(A_tru_24_hi))
+
+    ####################################################################################################################
+    # hypothesis 75: avg throughput higher for observation size 3 vs 4 with high demand
+    ####################################################################################################################
+    A_tru_34_hi = VD_A(list(res_obs_3_hi['throughput_avg']), list(res_obs_4_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: obs 3 vs 4 and high demand: '
+          + str(A_tru_34_hi))
+
+    ####################################################################################################################
+    # hypothesis 76: avg exp nodes higher for observation size 2 vs 3 with high demand
+    ####################################################################################################################
+    A_exp_23_hi = VD_A(list(res_obs_2_hi['exp_nodes']), list(res_obs_3_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: obs 2 vs 3 and high demand: '
+          + str(A_exp_23_hi))
+
+    ####################################################################################################################
+    # hypothesis 77: avg exp nodes higher for observation size 2 vs 4 with high demand
+    ####################################################################################################################
+    A_exp_24_hi = VD_A(list(res_obs_2_hi['exp_nodes']), list(res_obs_4_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: obs 2 vs 4 and high demand: '
+          + str(A_exp_24_hi))
+
+    ####################################################################################################################
+    # hypothesis 78: avg exp nodes higher for observation size 3 vs 4 with high demand
+    ####################################################################################################################
+    A_exp_34_hi = VD_A(list(res_obs_3_hi['exp_nodes']), list(res_obs_4_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: obs 3 vs 4 and high demand: '
+          + str(A_exp_34_hi))
+
+    ####################################################################################################################
+    # hypothesis 79: avg deadlocks higher for observation size 2 vs 3 with high demand
+    ####################################################################################################################
+    A_dead_23_hi = VD_A(list(res_obs_2_hi['deadlocks']), list(res_obs_3_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: obs 2 vs 3 and high demand: '
+          + str(A_dead_23_hi))
+
+    ####################################################################################################################
+    # hypothesis 80: avg deadlocks higher for observation size 2 vs 4 with high demand
+    ####################################################################################################################
+    A_dead_24_hi = VD_A(list(res_obs_2_hi['deadlocks']), list(res_obs_4_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: obs 2 vs 4 and high demand: '
+          + str(A_dead_24_hi))
+
+    ####################################################################################################################
+    # hypothesis 81: avg deadlocks higher for observation size 3 vs 4 with high demand
+    ####################################################################################################################
+    A_dead_34_hi = VD_A(list(res_obs_3_hi['deadlocks']), list(res_obs_4_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: obs 3 vs 4 and high demand: '
+          + str(A_dead_34_hi))
+
+    print('---------------BIDDING DECAY FACTOR----------------------------')
+    ####################################################################################################################
+    # hypothesis 82: avg travel time for bidding factor 1.1 vs 1.5 with high demand
+    ####################################################################################################################
+    A_bid_11_15 = VD_A(list(res_bid_11_hi['travel_t_avg']), list(res_bid_15_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: bid 1.1 vs 1.5 and high demand: '
+          + str(A_bid_11_15))
+
+    ####################################################################################################################
+    # hypothesis 83: avg travel time for bidding factor 1.1 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_11_20 = VD_A(list(res_bid_11_hi['travel_t_avg']), list(res_bid_20_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: bid 1.1 vs 12.0 and high demand: '
+          + str(A_bid_11_20))
+
+    ####################################################################################################################
+    # hypothesis 84: avg travel time for bidding factor 1.1 vs full with high demand
+    ####################################################################################################################
+    A_bid_11_full = VD_A(list(res_bid_11_hi['travel_t_avg']), list(res_bid_full_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: bid 1.1 vs full and high demand: '
+          + str(A_bid_11_full))
+
+    ####################################################################################################################
+    # hypothesis 85: avg travel time for bidding factor 1.5 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_15_20 = VD_A(list(res_bid_15_hi['travel_t_avg']), list(res_bid_20_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: bid 1.5 vs 2.0 and high demand: '
+          + str(A_bid_15_20))
+
+    ####################################################################################################################
+    # hypothesis 86: avg travel time for bidding factor 1.5 vs full with high demand
+    ####################################################################################################################
+    A_bid_15_full = VD_A(list(res_bid_15_hi['travel_t_avg']), list(res_bid_full_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: bid 1.5 vs full and high demand: '
+          + str(A_bid_15_full))
+
+    ####################################################################################################################
+    # hypothesis 87: avg travel time for bidding factor 2.0 vs full with high demand
+    ####################################################################################################################
+    A_bid_20_full = VD_A(list(res_bid_20_hi['travel_t_avg']), list(res_bid_full_hi['travel_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time: bid 2.0 vs full and high demand: '
+          + str(A_bid_20_full))
+
+    ####################################################################################################################
+    # hypothesis 88: avg travel distance for bidding factor 1.1 vs 1.5 with high demand
+    ####################################################################################################################
+    A_bid_d_11_15 = VD_A(list(res_bid_11_hi['travel_d_avg']), list(res_bid_15_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: bid 1.1 vs 1.5 and high demand: '
+          + str(A_bid_d_11_15))
+
+    ####################################################################################################################
+    # hypothesis 89: avg travel distance for bidding factor 1.1 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_d_11_20 = VD_A(list(res_bid_11_hi['travel_d_avg']), list(res_bid_20_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: bid 1.1 vs 2.0 and high demand: '
+          + str(A_bid_d_11_20))
+
+    ####################################################################################################################
+    # hypothesis 90: avg travel distance for bidding factor 1.1 vs full with high demand
+    ####################################################################################################################
+    A_bid_d_11_full = VD_A(list(res_bid_11_hi['travel_d_avg']), list(res_bid_full_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: bid 1.1 vs full and high demand: '
+          + str(A_bid_d_11_full))
+
+    ####################################################################################################################
+    # hypothesis 91: avg travel distance for bidding factor 1.5 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_d_15_20 = VD_A(list(res_bid_15_hi['travel_d_avg']), list(res_bid_20_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: bid 1.5 vs 2.0 and high demand: '
+          + str(A_bid_d_15_20))
+
+    ####################################################################################################################
+    # hypothesis 92: avg travel distance for bidding factor 1.5 vs full with high demand
+    ####################################################################################################################
+    A_bid_d_15_full = VD_A(list(res_bid_15_hi['travel_d_avg']), list(res_bid_full_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: bid 1.5 vs full and high demand: '
+          + str(A_bid_d_15_full))
+
+    ####################################################################################################################
+    # hypothesis 93: avg travel distance for bidding factor 2.0 vs full with high demand
+    ####################################################################################################################
+    A_bid_d_20_full = VD_A(list(res_bid_20_hi['travel_d_avg']), list(res_bid_full_hi['travel_d_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel distance: bid 2.0 vs full and high demand: '
+          + str(A_bid_d_20_full))
+
+    ####################################################################################################################
+    # hypothesis 94: avg travel time/distance for bidding factor 1.1 vs 1.5 with high demand
+    ####################################################################################################################
+    A_bid_td_11_15 = VD_A(list(res_bid_11_hi['travel_td_avg']), list(res_bid_15_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: bid 1.1 vs 1.5 and high demand: '
+          + str(A_bid_td_11_15))
+
+    ####################################################################################################################
+    # hypothesis 95: avg travel time/distance for bidding factor 1.1 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_td_11_20 = VD_A(list(res_bid_11_hi['travel_td_avg']), list(res_bid_20_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: bid 1.1 vs 2.0 and high demand: '
+          + str(A_bid_td_11_20))
+
+    ####################################################################################################################
+    # hypothesis 96: avg travel time/distance for bidding factor 1.1 vs full with high demand
+    ####################################################################################################################
+    A_bid_td_11_full = VD_A(list(res_bid_11_hi['travel_td_avg']), list(res_bid_full_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: bid 1.1 vs full and high demand: '
+          + str(A_bid_td_11_full))
+
+    ####################################################################################################################
+    # hypothesis 97: avg travel time/distance for bidding factor 1.5 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_td_15_20 = VD_A(list(res_bid_15_hi['travel_td_avg']), list(res_bid_20_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: bid 1.5 vs 2.0 and high demand: '
+          + str(A_bid_td_15_20))
+
+    ####################################################################################################################
+    # hypothesis 98: avg travel time/distance for bidding factor 1.5 vs full with high demand
+    ####################################################################################################################
+    A_bid_td_15_full = VD_A(list(res_bid_15_hi['travel_td_avg']), list(res_bid_full_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: bid 1.5 vs full and high demand: '
+          + str(A_bid_td_15_full))
+
+    ####################################################################################################################
+    # hypothesis 99: avg travel time/distance for bidding factor 2.0 vs full with high demand
+    ####################################################################################################################
+    A_bid_td_20_full = VD_A(list(res_bid_20_hi['travel_td_avg']), list(res_bid_full_hi['travel_td_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing travel time/distance: bid 2.0 vs full and high demand: '
+          + str(A_bid_td_20_full))
+
+    ####################################################################################################################
+    # hypothesis 100: avg computation time for bidding factor 1.1 vs 1.5 with high demand
+    ####################################################################################################################
+    A_bid_comp_11_15 = VD_A(list(res_bid_11_hi['comput_t_avg']), list(res_bid_15_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: bid 1.1 vs 1.5 and high demand: '
+          + str(A_bid_comp_11_15))
+
+    ####################################################################################################################
+    # hypothesis 101: avg computation time for bidding factor 1.1 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_comp_11_20 = VD_A(list(res_bid_11_hi['comput_t_avg']), list(res_bid_20_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: bid 1.1 vs 2.0 and high demand: '
+          + str(A_bid_comp_11_20))
+
+    ####################################################################################################################
+    # hypothesis 102: avg computation time for bidding factor 1.1 vs full with high demand
+    ####################################################################################################################
+    A_bid_comp_11_full = VD_A(list(res_bid_11_hi['comput_t_avg']), list(res_bid_full_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: bid 1.1 vs full and high demand: '
+          + str(A_bid_comp_11_full))
+
+    ####################################################################################################################
+    # hypothesis 103: avg computation time for bidding factor 1.5 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_comp_15_20 = VD_A(list(res_bid_15_hi['comput_t_avg']), list(res_bid_20_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: bid 1.5 vs 2.0 and high demand: '
+          + str(A_bid_comp_15_20))
+
+    ####################################################################################################################
+    # hypothesis 104: avg computation time for bidding factor 1.5 vs full with high demand
+    ####################################################################################################################
+    A_bid_comp_15_full = VD_A(list(res_bid_15_hi['comput_t_avg']), list(res_bid_full_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: bid 1.5 vs full and high demand: '
+          + str(A_bid_comp_15_full))
+
+    ####################################################################################################################
+    # hypothesis 105: avg computation time for bidding factor 2.0 vs full with high demand
+    ####################################################################################################################
+    A_bid_comp_20_full = VD_A(list(res_bid_20_hi['comput_t_avg']), list(res_bid_full_hi['comput_t_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing computation time: bid 2.0 vs full and high demand: '
+          + str(A_bid_comp_20_full))
+
+    ####################################################################################################################
+    # hypothesis 106 avg throughput for bidding factor 1.1 vs 1.5 with high demand
+    ####################################################################################################################
+    A_bid_tru_11_15 = VD_A(list(res_bid_11_hi['throughput_avg']), list(res_bid_15_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: bid 1.1 vs 1.5 and high demand: '
+          + str(A_bid_tru_11_15))
+
+    ####################################################################################################################
+    # hypothesis 107 avg throughput for bidding factor 1.1 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_tru_11_20 = VD_A(list(res_bid_11_hi['throughput_avg']), list(res_bid_20_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: bid 1.1 vs 2.0 and high demand: '
+          + str(A_bid_tru_11_20))
+
+    ####################################################################################################################
+    # hypothesis 108 avg throughput for bidding factor 1.1 vs full with high demand
+    ####################################################################################################################
+    A_bid_tru_11_full = VD_A(list(res_bid_11_hi['throughput_avg']), list(res_bid_full_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: bid 1.1 vs full and high demand: '
+          + str(A_bid_tru_11_full))
+
+    ####################################################################################################################
+    # hypothesis 109 avg throughput for bidding factor 1.5 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_tru_15_20 = VD_A(list(res_bid_15_hi['throughput_avg']), list(res_bid_20_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: bid 1.5 vs 2.0 and high demand: '
+          + str(A_bid_tru_15_20))
+
+    ####################################################################################################################
+    # hypothesis 110 avg throughput for bidding factor 1.5 vs full with high demand
+    ####################################################################################################################
+    A_bid_tru_15_full = VD_A(list(res_bid_15_hi['throughput_avg']), list(res_bid_full_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: bid 1.5 vs full and high demand: '
+          + str(A_bid_tru_15_full))
+
+    ####################################################################################################################
+    # hypothesis 111 avg throughput for bidding factor 2.0 vs full with high demand
+    ####################################################################################################################
+    A_bid_tru_20_full = VD_A(list(res_bid_20_hi['throughput_avg']), list(res_bid_full_hi['throughput_avg']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing throughput: bid 2.0 vs full and high demand: '
+          + str(A_bid_tru_20_full))
+
+    ####################################################################################################################
+    # hypothesis 112 avg exp nodes for bidding factor 1.1 vs 1.5 with high demand
+    ####################################################################################################################
+    A_bid_exp_11_15 = VD_A(list(res_bid_11_hi['exp_nodes']), list(res_bid_15_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: bid 1.1 vs 1.5 and high demand: '
+          + str(A_bid_exp_11_15))
+
+    ####################################################################################################################
+    # hypothesis 113 avg exp nodes for bidding factor 1.1 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_exp_11_20 = VD_A(list(res_bid_11_hi['exp_nodes']), list(res_bid_20_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: bid 1.1 vs 2.0 and high demand: '
+          + str(A_bid_exp_11_20))
+
+    ####################################################################################################################
+    # hypothesis 114 avg exp nodes for bidding factor 1.1 vs full with high demand
+    ####################################################################################################################
+    A_bid_exp_11_full = VD_A(list(res_bid_11_hi['exp_nodes']), list(res_bid_full_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: bid 1.1 vs full and high demand: '
+          + str(A_bid_exp_11_full))
+
+    ####################################################################################################################
+    # hypothesis 115 avg exp nodes for bidding factor 1.5 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_exp_15_20 = VD_A(list(res_bid_15_hi['exp_nodes']), list(res_bid_20_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: bid 1.5 vs 2.0 and high demand: '
+          + str(A_bid_exp_15_20))
+
+    ####################################################################################################################
+    # hypothesis 116 avg exp nodes for bidding factor 1.5 vs full with high demand
+    ####################################################################################################################
+    A_bid_exp_15_full = VD_A(list(res_bid_15_hi['exp_nodes']), list(res_bid_full_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: bid 1.5 vs full and high demand: '
+          + str(A_bid_exp_15_full))
+
+    ####################################################################################################################
+    # hypothesis 117 avg exp nodes for bidding factor 2.0 vs full with high demand
+    ####################################################################################################################
+    A_bid_exp_20_full = VD_A(list(res_bid_20_hi['exp_nodes']), list(res_bid_full_hi['exp_nodes']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing expanded nodes: bid 2.0 vs full and high demand: '
+          + str(A_bid_exp_20_full))
+
+    ####################################################################################################################
+    # hypothesis 118 avg deadlocks for bidding factor 1.1 vs 1.5 with high demand
+    ####################################################################################################################
+    A_bid_dead_11_15 = VD_A(list(res_bid_11_hi['deadlocks']), list(res_bid_15_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: bid 1.1 vs 1.5 and high demand: '
+          + str(A_bid_dead_11_15))
+
+    ####################################################################################################################
+    # hypothesis 119 avg deadlocks for bidding factor 1.1 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_dead_11_20 = VD_A(list(res_bid_11_hi['deadlocks']), list(res_bid_20_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: bid 1.1 vs 2.0 and high demand: '
+          + str(A_bid_dead_11_20))
+
+    ####################################################################################################################
+    # hypothesis 120 avg deadlocks for bidding factor 1.1 vs full with high demand
+    ####################################################################################################################
+    A_bid_dead_11_full = VD_A(list(res_bid_11_hi['deadlocks']), list(res_bid_full_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: bid 1.1 vs full and high demand: '
+          + str(A_bid_dead_11_full))
+
+    ####################################################################################################################
+    # hypothesis 121 avg deadlocks for bidding factor 1.5 vs 2.0 with high demand
+    ####################################################################################################################
+    A_bid_dead_15_20 = VD_A(list(res_bid_15_hi['deadlocks']), list(res_bid_20_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: bid 1.5 vs 2.0 and high demand: '
+          + str(A_bid_dead_15_20))
+
+    ####################################################################################################################
+    # hypothesis 122 avg deadlocks for bidding factor 1.5 vs full with high demand
+    ####################################################################################################################
+    A_bid_dead_15_full = VD_A(list(res_bid_15_hi['deadlocks']), list(res_bid_full_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: bid 1.5 vs full and high demand: '
+          + str(A_bid_dead_15_full))
+
+    ####################################################################################################################
+    # hypothesis 123 avg deadlocks for bidding factor 2.0 vs full with high demand
+    ####################################################################################################################
+    A_bid_dead_20_full = VD_A(list(res_bid_20_hi['deadlocks']), list(res_bid_full_hi['deadlocks']))
+    print('---------------')
+    print('Vargha and Delaney A index for comparing deadlocks: bid 2.0 vs full and high demand: '
+          + str(A_bid_dead_20_full))

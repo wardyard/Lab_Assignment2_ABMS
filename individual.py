@@ -4,32 +4,7 @@ individual planner where AC agents plan their routes themselves
 import time
 
 
-def run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, observation_size):
-    deadlocks = 0
-    expanded_nodes = 0  # KPI
-    start = time.perf_counter_ns()
-
-    for ac in aircraft_lst:
-        if ac.status == "taxiing":
-            # extract dictionary with nodeID keys and corresponding AC on this node
-            radar_dict = radar(aircraft_lst)
-            create_observation_space(ac, radar_dict, nodes_dict, observation_size)
-            observed_ac = ac.scan()
-            exp_nodes, deadlcks, deadlock_ac = ac.perform_ind_planning(observed_ac, t, dt, heuristics)
-            # if deadlock situations occurred, update its state to deadlocked so it won't be planned or moved
-            if len(deadlock_ac) > 0:
-                deadlocks += deadlcks
-                for locked_ac in deadlock_ac:
-                    locked_ac.status = "deadlocked"
-            expanded_nodes += exp_nodes
-
-    stop = time.perf_counter_ns()
-    # computing time performance indicator
-    time_delta = stop - start   # in nanoseconds
-    return time_delta, expanded_nodes, deadlocks
-
-
-def run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, observation_size):
+def run_individual_planner(aircraft_lst, nodes_dict, heuristics, t, dt, observation_size):
     deadlocks = 0
     expanded_nodes = 0
 
@@ -47,7 +22,7 @@ def run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, observa
             radar_dict = radar(aircraft_lst)
             create_observation_space(ac, radar_dict, nodes_dict, observation_size)
             observed_ac = ac.scan()
-            exp_nodes, deadlcks, deadlock_ac, detected_col = ac.perform_ind_planning2(observed_ac, t, dt, heuristics,
+            exp_nodes, deadlcks, deadlock_ac, detected_col = ac.perform_ind_planning(observed_ac, t, dt, heuristics,
                                                                                       deadlock_acids, observation_size)
             collisions_detected += detected_col
             # if deadlock situations occurred, update its state to deadlocked so it won't be planned or moved
@@ -66,7 +41,7 @@ def run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, observa
                 radar_dict = radar(aircraft_lst)
                 create_observation_space(ac, radar_dict, nodes_dict, observation_size)
                 observed_ac = ac.scan()
-                exp_nodes, deadlcks, deadlock_ac, detected_col = ac.perform_ind_planning2(observed_ac, t, dt,
+                exp_nodes, deadlcks, deadlock_ac, detected_col = ac.perform_ind_planning(observed_ac, t, dt,
                                                                                           heuristics, deadlock_acids,
                                                                                           observation_size)
                 collisions_detected += detected_col
@@ -81,6 +56,7 @@ def run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, observa
     stop = time.perf_counter_ns()
     time_delta = stop - start
     return time_delta, expanded_nodes, deadlocks
+
 
 def radar(aircraft_list):
     """

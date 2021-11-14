@@ -129,7 +129,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     # update the Aircraft instance variables
                     ac1.update_path_variables(ac1, acid_path, t)
                     # compute the KPIs
-                    ac1.compute_time_distance()
+                    #ac1.compute_time_distance()
                     if acid_path[0][1] != t:
                         raise Exception("Something is wrong with the timing of the path planning")
             return num_of_expanded, num_of_deadlocks
@@ -189,7 +189,7 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     q['collisions'] = detect_collisions(q['paths'], q['acids'], dt)
                     q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
-                    aircr.compute_time_distance()
+                    #aircr.compute_time_distance()
                 else:
                     # unable to find path for this AC. It shouldn't be removed tho, but this node should get a really
                     # high cost

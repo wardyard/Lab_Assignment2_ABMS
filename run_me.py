@@ -16,7 +16,6 @@ from Aircraft import Aircraft
 from independent import run_independent_planner
 from prioritized import run_prioritized_planner
 from individual import run_individual_planner
-from individual import run_individual_planner2
 from cbs import run_CBS
 
 # %% SET SIMULATION PARAMETERS
@@ -256,10 +255,8 @@ for i in range(NUM_OF_SIMULATIONS):
         # in addition check if the spawned AC will be in deadlock, this happens when another AC is at the last 2 nodes
         # before a runway or gate. For this, all the AC paths currently in the field are checked whether at timestep t, they
         # are located at one of these positions
-        # TODO: should we maybe try and spawn more than 1 AC at a single timestep?
-        # TODO: in this case, same arrival time constraints need to be constructed as well to prevent 2 AC spawning at rwy_a
 
-        if arrival_rate == "high":  # TODO: find appropriate values
+        if arrival_rate == "high":
             threshold = 0.35
         elif arrival_rate == "low":
             threshold = 0.2
@@ -309,47 +306,7 @@ for i in range(NUM_OF_SIMULATIONS):
                 aircraft_lst.append(ac)
                 spawned_ac += 1
             print('Aircraft spawned at ' + str(t) + ', position: ' + str(start_node))
-        '''
 
-        if t==0:
-            aircraft_lst.append(Aircraft(1, 'D', 36, 2, t, nodes_dict))
-        if t == 2.5:
-            aircraft_lst.append(Aircraft(2, 'D', 35, 1, t, nodes_dict))
-        if t==4.5:
-            aircraft_lst.append(Aircraft(3, 'A', 37, 98, t, nodes_dict))
-        if t==7.5:
-            aircraft_lst.append(Aircraft(4, 'D', 34, 1, t, nodes_dict))
-        if t==8.5:
-            aircraft_lst.append(Aircraft(5, 'A', 37, 98, t, nodes_dict))
-        if t == 10:
-            aircraft_lst.append(Aircraft(6, 'A', 38, 36, t, nodes_dict))
-        if t==14:
-            aircraft_lst.append(Aircraft(7, 'A', 38, 35, t, nodes_dict))
-        if t==15:
-            aircraft_lst.append(Aircraft(8, 'D', 35, 1, t, nodes_dict))
-        if t==15.5:
-            aircraft_lst.append(Aircraft(9, 'D', 97, 2, t, nodes_dict))
-        if t==16.5:
-            aircraft_lst.append(Aircraft(10, 'D', 97, 1, t, nodes_dict))
-        if t==20:
-            aircraft_lst.append(Aircraft(11, 'D', 36, 1, t, nodes_dict))
-        if t==21:
-            aircraft_lst.append(Aircraft(12, 'D', 34, 2, t, nodes_dict))
-        if t==23.5:
-            aircraft_lst.append(Aircraft(13, 'D', 34, 1, t, nodes_dict))
-        if t==24:
-            aircraft_lst.append(Aircraft(14, 'D', 97, 1, t, nodes_dict))
-        if t==24.5:
-            aircraft_lst.append(Aircraft(15, 'D', 35, 2, t, nodes_dict))
-        if t==26.5:
-            aircraft_lst.append(Aircraft(16, 'A', 38, 34, t, nodes_dict))
-        if t==27.5:
-            aircraft_lst.append(Aircraft(17, 'D', 34, 1, t, nodes_dict))
-        if t==31:
-            aircraft_lst.append(Aircraft(18, 'A', 37, 97, t, nodes_dict))
-        if t==34.5:
-            aircraft_lst.append(Aircraft(19, 'A', 37, 34, t, nodes_dict))
-        '''
         # Do planning
         if planner == "Independent":
             time_delta, exp_nodes = run_independent_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t)
@@ -382,15 +339,12 @@ for i in range(NUM_OF_SIMULATIONS):
         elif planner == "Individual":
             # set the planned_t variable to False, only once per time step!
             for ac in aircraft_lst:
-                #ac.planned_t = False       # used in earlier version of individual planning
-                #ac.right_of_way_t = False  # used in earlier version of individual planning
                 ac.loss_list = []   # added for individual2
                 if ac.spawntime == t:
                     ac.status = "taxiing"
                     ac.position = nodes_dict[ac.start]["xy_pos"]
 
-            #time_delta, exp_nodes, deadlcks = run_individual_planner(aircraft_lst, nodes_dict, edges_dict, heuristics, t, dt, ind_obs_size)
-            time_delta, exp_nodes, deadlcks = run_individual_planner2(aircraft_lst, nodes_dict, heuristics, t, dt, ind_obs_size)
+            time_delta, exp_nodes, deadlcks = run_individual_planner(aircraft_lst, nodes_dict, heuristics, t, dt, ind_obs_size)
             # expanded nodes performance indicator
             expanded_nodes += exp_nodes
             # computing time performance indicator
@@ -412,12 +366,15 @@ for i in range(NUM_OF_SIMULATIONS):
                 # if AC has reached its goal, increment the throughput value by 1, else,
                 if ac.status == "arrived":
                     ac_arrived_t += 1
-                    #aircraft_lst.remove(ac)
 
         # add amount of arrived AC for this timestep in throughput dict
         throughput[t] = ac_arrived_t
 
         t = t + dt
+        # at the last time step, determine the time and distance performance indicators
+        if t == simulation_time:
+            for ac in aircraft_lst:
+                ac.compute_time_distance()
 
     # =============================================================================
     # 2. Implement analysis of output data here
@@ -511,9 +468,9 @@ elif planner == "CBS":
         output_file = "results_cbs_hi.csv"
 elif planner == "Individual":
     if arrival_rate =="low":
-        output_file = "results_ind_lo_bid_full.csv"
+        output_file = "results_ind_lo_.csv"
     else:
-        output_file = "results_ind_hi_bid_full.csv"
+        output_file = "results_ind_hi_.csv"
 
 df_kpi.to_csv(output_file)
 
@@ -555,8 +512,7 @@ plt.title('Evolution of CV for avg computation time')
 plt.legend()
 
 # plot heat map
-# TODO: find a suitable value for max_heat such that we can compare heatmaps
-max_heat = 3100
+max_heat = 3100   # experimentally, the max heat for all planners and arrival rates was around 2900. Set 3100 to be safe
 #max_heat = 2000
 # now normalize heatmap with respect to 1. The max_heat value will correspond to 1
 # the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual
