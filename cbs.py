@@ -121,15 +121,12 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                 acid = ac1.id
                 # if the aircraft is currently in the map:
                 if acid in p['acids']:
-                    # TODO: update the current paths of aircraft using the paths in the node!
                     # determine index of this ACID in the p['acids'] list
                     index_p_acids = p['acids'].index(acid)
                     # retrieve the path corresponding to this ACID
                     acid_path = p['paths'][index_p_acids]
                     # update the Aircraft instance variables
                     ac1.update_path_variables(ac1, acid_path, t)
-                    # compute the KPIs
-                    #ac1.compute_time_distance()
                     if acid_path[0][1] != t:
                         raise Exception("Something is wrong with the timing of the path planning")
             return num_of_expanded, num_of_deadlocks
@@ -185,11 +182,9 @@ def cbs(aircraft_list, nodes_dict, edges_dict, heuristics, dt, t):
                     index = q['acids'].index(q_acid)
                     # replace the path corresponding to this AC
                     q['paths'][index] = q_path
-                    #print('14) q[paths] after update: ' + str(q['paths']))
                     q['collisions'] = detect_collisions(q['paths'], q['acids'], dt)
                     q['cost'] = get_sum_of_cost(q['paths'])
                     num_of_generated = push_node(open_list, q, num_of_generated)
-                    #aircr.compute_time_distance()
                 else:
                     # unable to find path for this AC. It shouldn't be removed tho, but this node should get a really
                     # high cost
@@ -232,7 +227,6 @@ def detect_collision(path1, path2, dt):
             ##print('RUNWAY CONSTRAINT DETECT_COLLISION')
             return [[loc1, loc2], timestep]
         # edge collision
-        # TODO: find a pretty way to do this
         elif loc1 is not None and loc2 is not None and loc1_t_1 is not None and loc2_t_1 is not None and loc1 == loc2_t_1 and loc2 == loc1_t_1:
             return [[loc1, loc2], timestep]  # used to be timestep + dt
     return None
@@ -288,7 +282,7 @@ def detect_collisions(paths, acids, dt):
                 if collision is not None:
                     collisions.append({'acid1': acids[i], 'acid2': acids[j], 'loc': collision[0], 'timestep': collision[1]})
                 combs.append((i, j))
-    #print('Detected collisions: ' + str(collisions))
+
     return collisions
 
 
@@ -311,7 +305,7 @@ def standard_splitting(collision, dt):
     # create a new function, build_constraint_table_cbs. In the a_star function, it will first be checked whether
     # it is optimizing for prioritized or cbs and then use the correct constraint table builder
     constraints = []
-    #print('Standard splitting collision: ' + str(collision))
+
     loc = collision['loc']
     timestep = collision['timestep']
 
@@ -336,7 +330,7 @@ def standard_splitting(collision, dt):
         constraint2 = {'acid': collision['acid2'], 'loc': loc, 'timestep': timestep}
         constraints.append(constraint1)
         constraints.append(constraint2)
-    #print('Standard splitting constraints: ' + str(constraints))
+
     return constraints
 
 
@@ -359,7 +353,7 @@ def push_node(open_list, node, num_of_generated):
         number of generated nodes so far, not really relevant right now
     """
     heapq.heappush(open_list, (node['cost'], len(node['collisions']), num_of_generated, node))
-    #print("Generate node {}".format(num_of_generated))
+
     num_of_generated += 1
     return num_of_generated
 

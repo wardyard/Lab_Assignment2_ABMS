@@ -92,11 +92,7 @@ class Aircraft(object):
 
         # Determine nodes between which the ac is moving
         from_node = self.from_to[0]
-        # division by 0 debugging
-        ##print('from_node: ' + str(from_node))
         to_node = self.from_to[1]
-        # division by 0 debugging
-        ##print('to_node: ' + str(to_node))
         xy_from = self.nodes_dict[from_node]["xy_pos"]  # xy position of from node
         xy_to = self.nodes_dict[to_node]["xy_pos"]  # xy position of to node
         distance_to_move = self.speed * dt  # distance to move in this timestep
@@ -105,7 +101,6 @@ class Aircraft(object):
         x = xy_to[0] - xy_from[0]
         y = xy_to[1] - xy_from[1]
         # division by 0 debugging
-        ##print('x: ' + str(x) + ', y: ' + str(y))
         x_normalized = 0 if (x == 0 and y == 0) else x / math.sqrt(x ** 2 + y ** 2)
         y_normalized = 0 if (x == 0 and y == 0) else y / math.sqrt(x ** 2 + y ** 2)
         posx = round(self.position[0] + x_normalized * distance_to_move, 2)  # round to prevent errors
@@ -152,13 +147,7 @@ class Aircraft(object):
                 self.path_to_goal = path[1:]
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
-                #print("Path AC", self.id, ":", path)
                 self.current_path = path
-                # determine length and time of travelled path + their ratio
-                #self.compute_time_distance()
-                #print("travel time AC", self.id, ":", self.travel_time)
-                #print("travel distance AC", self.id, ":", self.path_length)
-                #print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
 
             else:
                 raise Exception("No solution found for", self.id)
@@ -201,11 +190,6 @@ class Aircraft(object):
                 next_node_id = self.path_to_goal[0][0]  # next node is first node in path_to_goal
                 self.from_to = [path[0][0], next_node_id]
                 self.current_path = path.copy()
-                # determine length and time of travelled path + their ratio
-                #self.compute_time_distance()
-                # #print("travel time AC", self.id, ":", self.travel_time)
-                # #print("travel distance AC", self.id, ":", self.path_length)
-                # #print("travel time/distance ratio AC", self.id, ":", self.time_length_ratio)
 
                 # now add constraints to other agents
                 # constraints are not agent-specific, but spawn time specific
@@ -214,27 +198,27 @@ class Aircraft(object):
                 for node_time_pair in path: # path is list of (node_id, timestep) tuples
                     node = node_time_pair[0]    # find node_id
                     timestep = node_time_pair[1]
+                    # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can
+                    # be removed once this aircraft has reached its goal
                     # vertex constraint
-                    # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can be removed
-                    # once this aircraft has reached its goal
-                    constraints.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep, 'acid': self.id})
+                    constraints.append({'spawntime': self.spawntime, 'loc': [node], 'timestep': timestep,
+                                        'acid': self.id})
                     # edge constraint: only if aircraft has moved already
                     if not timestep <= self.spawntime + dt:
                         # find previous node in AC path. The 2*timestep is to convert half timesteps to indices
-                        # #print('timestep: ' + str(timestep))
                         previous_node = path[int((1/dt) * timestep - (1/dt) * self.spawntime - 1)][0]
-                        # added acid (aircraft ID) as a field. This way, constraints constructed by a certain aircraft can be removed
-                        # once this aircraft has reached its goal
-                        constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node], 'timestep': timestep, 'acid': self.id})
+                        constraints.append({'spawntime': self.spawntime, 'loc': [node, previous_node],
+                                            'timestep': timestep, 'acid': self.id})
                     # same departure time constraint
                     if node == 2 or node == 1:
-                        constraints.append({'spawntime': self.spawntime, 'loc': [1], 'timestep': timestep, 'acid': self.id})
-                        constraints.append({'spawntime': self.spawntime, 'loc': [2], 'timestep': timestep, 'acid': self.id})
+                        constraints.append({'spawntime': self.spawntime, 'loc': [1], 'timestep': timestep,
+                                            'acid': self.id})
+                        constraints.append({'spawntime': self.spawntime, 'loc': [2], 'timestep': timestep,
+                                            'acid': self.id})
 
                 return expanded_nodes, constraints, 0, None
 
             else:
-                #print('No solution found for ' + str(self.id))
                 return expanded_nodes, constraints, 1, self
 
     def compute_time_distance(self):
@@ -276,6 +260,35 @@ class Aircraft(object):
         return observed_ac
 
     def perform_ind_planning(self, observed_ac, t, dt, heuristics, deadlock_acids, observation_size):
+        """
+        Performs distributed planning for this aircraft. Loops over all AC in observation space (ac2) and does the
+        following:
+        1) if ac2 is deadlocked, do nothing
+        2) is self has lost from ac2 in a previous auction, change path to avoid collision
+        3) check if there are collisions between paths fro next few timesteps (based on observation size), if there
+        aren't any, go tho the next AC in observed AC. If there are, do the follwing:
+        4) check if self is at intersection and ac2 is not. If this is the case, update path for self. If not, go to
+        next step
+        5) check if ac2 is at intersection and self is not. If this is the case, move to next AC in observed AC.
+        Otherwise continue
+        6) determine 2 new paths with constraints following from collision
+        7) determine bids of each AC and determine winner
+        8) if self wins, append self to the loss list of ac2
+        9) is ac2 wins, update path for self
+        Args:
+            observed_ac: the list of aircraft which self can see with this observation space
+            t: current itme step
+            dt: time step difference
+            heuristics: map of heauristics values
+            deadlock_acids: AC which are deadlocked for this timestep
+            observation_size: size of the observation space
+
+        Returns:
+            expanded nodes to get a solution
+            amount of deadlocks
+            AC which were in a deadlock
+            amount of detected collisions for this AC
+        """
 
         # performance indicators
         expanded_nodes = 0
@@ -299,13 +312,12 @@ class Aircraft(object):
                 expanded_nodes += exp_nodes
                 # update current path, used for travelling time and distance performance indicator
                 self.current_path = path.copy()
-                #self.compute_time_distance()
+
             else:
                 # performance indictaor
                 deadlocks += 1
                 deadlock_ac.append(self)
                 deadlock_acids.append(self.id)
-                #print('no base path found for ac1')
 
         # loop over the other AC that this AC can see in its observation space
         for ac2 in observed_ac:
@@ -333,7 +345,6 @@ class Aircraft(object):
                         deadlocks += 1
                         deadlock_ac.append(ac2)
                         deadlock_acids.append(ac2.id)
-                        ##print('no base path found for ac2')
 
                 # first check whether ac2 is in the loss_list of self. If this is the case, self will have to replan
                 # using the instance variable constraints (self received these constraints when it encountered ac2
@@ -358,7 +369,6 @@ class Aircraft(object):
                         deadlocks += 1
                         deadlock_acids.append(self.id)
                         deadlock_ac.append(self)
-                        # TODO: should something else happen for a deadlock situation?
                         return expanded_nodes, deadlocks, deadlock_ac, detected_collisions
 
                 # AC2 is not in the loss_list of self
@@ -441,7 +451,6 @@ class Aircraft(object):
                                 deadlocks += 1
                                 deadlock_acids.append(self.id)
                                 deadlock_ac.append(self)
-                                # TODO: should something else happen for a deadlock situation?
                                 return expanded_nodes, deadlocks, deadlock_ac, detected_collisions
 
                             else:
@@ -524,7 +533,6 @@ class Aircraft(object):
                                 deadlocks += 1
                                 deadlock_acids.append(self.id)
                                 deadlock_ac.append(self)
-                                # TODO: should something else happen for a deadlock situation?
                                 return expanded_nodes, deadlocks, deadlock_ac, detected_collisions
 
                             # update the necessary instance variables

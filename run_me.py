@@ -33,10 +33,10 @@ planner = "Individual"  # choose which planner to use (currently only Independen
 # Visualization (can also be changed)
 plot_graph = False  # show graph representation in NetworkX
 visualization = False  # pygame visualization
-visualization_speed = 0.5 # set at 0.1 as default
+visualization_speed = 0.5  # set at 0.1 as default
 
 # number of times the simulation should be ran
-NUM_OF_SIMULATIONS = 200
+NUM_OF_SIMULATIONS = 5
 
 # specify arrival rate
 arrival_rate = "high"
@@ -44,6 +44,7 @@ arrival_rate = "high"
 # for individual planning: specify the size of the observation area
 # 1 means that it will only see its neighboring nodes
 # 2 means that it will account for neighboring nodes and their neighbors
+# ...
 ind_obs_size = 2
 
 ########################################################################################################################
@@ -513,9 +514,8 @@ plt.legend()
 
 # plot heat map
 max_heat = 3100   # experimentally, the max heat for all planners and arrival rates was around 2900. Set 3100 to be safe
-#max_heat = 2000
 # now normalize heatmap with respect to 1. The max_heat value will correspond to 1
-# the nx.draw function neeeds a color map with floats ranging from 0-1, so that's why we don't use actual
+# the nx.draw function needs a color map with floats ranging from 0-1, so that's why we don't use actual
 # RGB values up until 255
 heatmap = [(1, 1 - a / float(max_heat), 0) for a in heatmap]
 # plot the graph (heatmap)

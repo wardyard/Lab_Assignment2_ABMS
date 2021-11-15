@@ -5,6 +5,22 @@ import time
 
 
 def run_individual_planner(aircraft_lst, nodes_dict, heuristics, t, dt, observation_size):
+    """
+    performs individual planning for all AC currently in the map. Doesn't treat AC if they aren't taxiing. Loops over
+    all taxiing AC and lets them plan individually until no collisions occurred between aircraft
+    Args:
+        aircraft_lst: list of all aircraft spawned up until t
+        nodes_dict:
+        heuristics:
+        t: curren time step
+        dt: time step difference
+        observation_size: size of the observation space of the aircraft
+
+    Returns:
+        computation time to find solution
+        number of expanded nodes to find solution
+        number of deadlocks encountered
+    """
     deadlocks = 0
     expanded_nodes = 0
 

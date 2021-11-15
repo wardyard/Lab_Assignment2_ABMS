@@ -268,9 +268,6 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             # return to the node it was at before this one either
             if len(path) > 1 and not constrained:
                 last_node = path[-1][0]  # equal to 'current position' in the path construction
-                # #print('current path: ' + str(path))
-                # #print('last node: ' + str(last_node))
-                # #print('neighbor: ' + str(neighbor))
                 index = -1
                 different = False
                 while not different and len(path) > index * (-1):
@@ -285,7 +282,6 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
                   #  #print('no different node in previous positions')
             # 180° constraints for CBS
             # current heading of the AC
-            # TODO: also let this work for path > 1
             ac_heading = ac.heading
             if len(path) <= 1 and not constrained and curr['loc'] != ac.start:
             # if not constrained and curr['loc'] != ac.start:
@@ -337,7 +333,7 @@ def astar(nodes_dict, from_node, goal_node, heuristics, constraints, start_time,
             else:
                 closed_list[(child['loc'], child['timestep'])] = child
                 push_node(open_list, child)
-    #print("No path found, " + str(len(closed_list)) + " nodes visited")
+
     return False, [], expanded_nodes  # Failed to find solutions
 
 
@@ -363,5 +359,5 @@ def get_path(goal_node):
         path.append((curr['loc'], curr['timestep']))
         curr = curr['parent']
     path.reverse()
-    ##print(path)
+   
     return path
